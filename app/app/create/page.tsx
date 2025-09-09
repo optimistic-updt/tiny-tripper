@@ -6,15 +6,14 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import {
   Button,
-  Card,
   Flex,
   Text,
   TextField,
   TextArea,
-  Select,
   Switch,
   Callout,
   Heading,
+  SegmentedControl,
 } from "@radix-ui/themes";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 
@@ -136,23 +135,24 @@ export default function CreateActivityPage() {
               />
             </div>
 
-            <div>
+            <Flex direction={"column"}>
               <Text size="2" weight="medium" mb="2">
                 Urgency
               </Text>
-              <Select.Root
+              <SegmentedControl.Root
+                defaultValue="medium"
+                size="3"
                 onValueChange={(value: "low" | "medium" | "high") =>
                   setValue("urgency", value)
                 }
               >
-                <Select.Trigger placeholder="Select urgency level" />
-                <Select.Content>
-                  <Select.Item value="low">Low</Select.Item>
-                  <Select.Item value="medium">Medium</Select.Item>
-                  <Select.Item value="high">High</Select.Item>
-                </Select.Content>
-              </Select.Root>
-            </div>
+                <SegmentedControl.Item value="low">Low</SegmentedControl.Item>
+                <SegmentedControl.Item value="medium">
+                  Medium
+                </SegmentedControl.Item>
+                <SegmentedControl.Item value="high">High</SegmentedControl.Item>
+              </SegmentedControl.Root>
+            </Flex>
 
             <div>
               <Text size="2" weight="medium" mb="2">
