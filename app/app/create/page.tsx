@@ -16,6 +16,8 @@ import {
   SegmentedControl,
 } from "@radix-ui/themes";
 import { CheckCircle, AlertTriangle } from "lucide-react";
+import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
+import { env } from "@/env";
 
 type ActivityFormData = {
   name: string;
@@ -173,9 +175,11 @@ export default function CreateActivityPage() {
               <Text size="2" weight="medium" mb="2">
                 Location
               </Text>
-              <TextField.Root
-                {...register("location")}
+              <GooglePlacesAutocomplete
+                value={watch("location") || ""}
+                onChange={(value) => setValue("location", value)}
                 placeholder="Enter location"
+                apiKey={env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
               />
             </div>
 
