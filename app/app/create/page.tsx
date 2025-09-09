@@ -25,6 +25,7 @@ type ActivityFormData = {
   endDate?: string;
   isPublic?: boolean;
   rainApproved?: boolean;
+  inHome?: boolean;
 };
 
 export default function CreateActivityPage() {
@@ -46,10 +47,12 @@ export default function CreateActivityPage() {
     defaultValues: {
       isPublic: true,
       rainApproved: false,
+      inHome: false,
     },
   });
   const isPublic = watch("isPublic");
   const rainApproved = watch("rainApproved");
+  const inHome = watch("inHome");
 
   const onSubmit = async (data: ActivityFormData) => {
     setIsSubmitting(true);
@@ -60,6 +63,9 @@ export default function CreateActivityPage() {
     const tags = [];
     if (data.rainApproved) {
       tags.push("rain-approved");
+    }
+    if (data.inHome) {
+      tags.push("At Home");
     }
 
     try {
@@ -211,6 +217,23 @@ export default function CreateActivityPage() {
                 {rainApproved
                   ? "This activity is suitable for rainy weather"
                   : "Not specifically designed for rainy weather"}
+              </Text>
+            </div>
+
+            <div>
+              <Flex align="center" gap="3">
+                <Switch
+                  checked={inHome}
+                  onCheckedChange={(checked) => setValue("inHome", checked)}
+                />
+                <Text size="2" weight="medium">
+                  In Home
+                </Text>
+              </Flex>
+              <Text size="1" color="gray" mt="1">
+                {inHome
+                  ? "This activity can be done at home"
+                  : "This activity requires going outside or to a specific location"}
               </Text>
             </div>
 
