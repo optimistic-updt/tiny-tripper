@@ -24,6 +24,7 @@ type ActivityFormData = {
   location?: string;
   endDate?: string;
   isPublic?: boolean;
+  rainApproved?: boolean;
 };
 
 export default function CreateActivityPage() {
@@ -44,15 +45,22 @@ export default function CreateActivityPage() {
   } = useForm<ActivityFormData>({
     defaultValues: {
       isPublic: true,
+      rainApproved: false,
     },
   });
   const isPublic = watch("isPublic");
+  const rainApproved = watch("rainApproved");
 
   const onSubmit = async (data: ActivityFormData) => {
     setIsSubmitting(true);
     setSubmitStatus(null);
 
     console.log("submitting", data);
+
+    const tags = [];
+    if (data.rainApproved) {
+      tags.push("rain-approved");
+    }
 
     try {
       await createActivity({
@@ -62,6 +70,7 @@ export default function CreateActivityPage() {
         location: data.location || undefined,
         endDate: data.endDate || undefined,
         isPublic: data.isPublic || false,
+        tags: tags.length > 0 ? tags : undefined,
       });
 
       setSubmitStatus({
@@ -185,6 +194,23 @@ export default function CreateActivityPage() {
                 {isPublic
                   ? "Anyone can see this activity"
                   : "Only you can see this activity"}
+              </Text>
+            </div>
+
+            <div>
+              <Flex align="center" gap="3">
+                <Switch
+                  checked={rainApproved}
+                  onCheckedChange={(checked) => setValue("rainApproved", checked)}
+                />
+                <Text size="2" weight="medium">
+                  Rain-Approved
+                </Text>
+              </Flex>
+              <Text size="1" color="gray" mt="1">
+                {rainApproved
+                  ? "This activity is suitable for rainy weather"
+                  : "Not specifically designed for rainy weather"}
               </Text>
             </div>
 

@@ -12,5 +12,6 @@ export default defineSchema({
     endDate: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
     userId: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
   }),
 });

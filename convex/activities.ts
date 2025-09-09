@@ -14,6 +14,7 @@ export const createActivity = mutation({
     location: v.optional(v.string()),
     endDate: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
+    tags: v.optional(v.array(v.string())),
   },
 
   handler: async (ctx, args) => {
@@ -27,6 +28,7 @@ export const createActivity = mutation({
       endDate: args.endDate,
       isPublic: args.isPublic ?? false,
       userId: identity?.subject,
+      tags: args.tags,
     });
 
     return activityId;
