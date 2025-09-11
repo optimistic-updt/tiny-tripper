@@ -3,15 +3,16 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    CONVEX_DEPLOYMENT: z.string(),
-    CLERK_SECRET_KEY: z.string().startsWith("sk_"),
-    CLERK_JWT_ISSUER_DOMAIN: z.string(),
-    GOOGLE_CLIENT_ID: z.string(),
-    GOOGLE_CLIENT_SECRET: z.string(),
-    GITHUB_CLIENT_ID: z.string(),
-    GITHUB_CLIENT_SECRET: z.string(),
-    DISCORD_CLIENT_ID: z.string(),
-    DISCORD_CLIENT_SECRET: z.string(),
+    // CONVEX_DEPLOYMENT: z.string(),
+    // CLERK_SECRET_KEY: z.string().startsWith("sk_"),
+    // CLERK_JWT_ISSUER_DOMAIN: z.string(),
+    // GOOGLE_CLIENT_ID: z.string(),
+    // GOOGLE_CLIENT_SECRET: z.string(),
+    // GITHUB_CLIENT_ID: z.string(),
+    // GITHUB_CLIENT_SECRET: z.string(),
+    // DISCORD_CLIENT_ID: z.string(),
+    // DISCORD_CLIENT_SECRET: z.string(),
+    // OPENAI_API_KEY: z.string().startsWith("sk-"),
   },
   client: {
     NEXT_PUBLIC_CONVEX_URL: z.string().startsWith("https://"),
@@ -29,6 +30,7 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   },
 });

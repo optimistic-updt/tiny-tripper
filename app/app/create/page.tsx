@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
@@ -18,6 +18,8 @@ import {
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 import { env } from "@/env";
+import { useRouter } from "next/navigation";
+import { ROUTES } from "@/app/routes";
 
 type ActivityFormData = {
   name: string;
@@ -31,12 +33,13 @@ type ActivityFormData = {
 };
 
 export default function CreateActivityPage() {
-  const createActivity = useMutation(api.activities.createActivity);
+  const createActivity = useAction(api.activities.createActivity);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const router = useRouter();
 
   const {
     register,
@@ -59,8 +62,6 @@ export default function CreateActivityPage() {
   const onSubmit = async (data: ActivityFormData) => {
     setIsSubmitting(true);
     setSubmitStatus(null);
-
-    console.log("submitting", data);
 
     const tags = [];
     if (data.rainApproved) {
@@ -86,6 +87,7 @@ export default function CreateActivityPage() {
         message: "Activity created successfully!",
       });
       reset();
+      router.push(ROUTES.activities);
     } catch {
       setSubmitStatus({
         type: "error",
@@ -107,21 +109,6 @@ export default function CreateActivityPage() {
             Create a new activity to share with others
           </Text>
         </div>
-
-        {submitStatus && (
-          <Callout.Root
-            color={submitStatus.type === "success" ? "green" : "red"}
-          >
-            <Callout.Icon>
-              {submitStatus.type === "success" ? (
-                <CheckCircle size={16} />
-              ) : (
-                <AlertTriangle size={16} />
-              )}
-            </Callout.Icon>
-            <Callout.Text>{submitStatus.message}</Callout.Text>
-          </Callout.Root>
-        )}
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Flex direction="column" gap="4">
@@ -211,7 +198,9 @@ export default function CreateActivityPage() {
               <Flex align="center" gap="3">
                 <Switch
                   checked={rainApproved}
-                  onCheckedChange={(checked) => setValue("rainApproved", checked)}
+                  onCheckedChange={(checked) =>
+                    setValue("rainApproved", checked)
+                  }
                 />
                 <Text size="2" weight="medium">
                   Rain-Approved
@@ -255,6 +244,21 @@ export default function CreateActivityPage() {
             </Flex>
           </Flex>
         </form>
+
+        {submitStatus && (
+          <Callout.Root
+            color={submitStatus.type === "success" ? "green" : "red"}
+          >
+            <Callout.Icon>
+              {submitStatus.type === "success" ? (
+                <CheckCircle size={16} />
+              ) : (
+                <AlertTriangle size={16} />
+              )}
+            </Callout.Icon>
+            <Callout.Text>{submitStatus.message}</Callout.Text>
+          </Callout.Root>
+        )}
       </Flex>
     </div>
   );

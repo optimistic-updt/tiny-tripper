@@ -1,13 +1,19 @@
-import React, { type FC, type ReactNode } from "react";
-import { List, Play, PlusIcon } from "lucide-react";
+import React, {
+  ForwardRefExoticComponent,
+  RefAttributes,
+  type FC,
+} from "react";
+import { List, LucideProps, Play, PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { twMerge } from "tailwind-merge";
 import { ROUTES } from "../routes";
+import { IconButton } from "@radix-ui/themes";
 
 type NavItemProps = {
   isActive: boolean;
   item: {
-    icon: ReactNode;
+    icon: ForwardRefExoticComponent<
+      Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
+    >;
     name: string;
     href: string;
     isPrimary?: boolean;
@@ -19,18 +25,22 @@ const NavItem: FC<NavItemProps> = ({
   item: { icon, name, href, isPrimary },
 }) => {
   const Icon = icon;
+
   return (
-    <Link
-      href={href}
-      className={twMerge(
-        "relative rounded-full p-2 text-gray-400 transition-colors",
-        isPrimary && "bg-purple-600 text-white",
-        isActive && "text-gray-9050",
-      )}
-    >
-      <span className="sr-only">{name}</span>
-      {/* @ts-expect-error - TypeScript doesn't know about Lucide */}
-      <Icon size={24} />
+    <Link href={href}>
+      <IconButton
+        variant={isPrimary ? "solid" : "ghost"}
+        radius="full"
+        size="3"
+        title={name}
+      >
+        <span className="sr-only">{name}</span>
+        <Icon size={24} />
+
+        {isActive && (
+          <span className="bg-orange-500 rounded-full size-2.5 absolute -bottom-1" />
+        )}
+      </IconButton>
     </Link>
   );
 };
@@ -43,12 +53,13 @@ const NAV_ITEMS = [
 
 export const Navbar = () => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 rounded-t-3xl bg-white md:mx-4">
+    <nav className="fixed bottom-0 inset-x-0 rounded-t-3xl bg-white md:mx-4">
       <div className="mx-auto flex max-w-md items-center justify-between px-8 py-4">
         {NAV_ITEMS.map((item) => (
           <NavItem
             key={item.name}
             item={item}
+            isActive={false}
             // isActive={router.pathname === item.href}
           />
         ))}
