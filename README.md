@@ -20,6 +20,8 @@ Parents in Melbourne
 - [ ] Make a rough play page.
 - [ ] Try importing a set of activities from Mama Knows North.
 - [ ] Filters [Home or away] [indoor or outdoor].
+- [ ] add image upload  (try llm in browser)
+- [ ] add image generation
 - [ ] ask your location to give distance
 - [ ] add times to activities
 - [ ] hide activities

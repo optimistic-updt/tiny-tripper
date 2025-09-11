@@ -4,16 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "npm-run-all --parallel dev:frontend dev:backend",
-    "dev:frontend": "next dev",
-    "dev:backend": "convex dev",
-    "predev": "convex dev --until-success && convex dashboard",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev:frontend": "dotenvx run --convention=nextjs -- next dev",
+    "dev:backend": "dotenvx run --convention=nextjs -- convex dev",
+    "predev": "dotenvx run --convention=nextjs -- convex dev --until-success && convex dashboard",
+    "build": "dotenvx run --convention=nextjs -- next build",
+    "start": "dotenvx run --convention=nextjs -- next start",
+    "lint": "dotenvx run --convention=nextjs -- next lint"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.25.0",
     "@clerk/nextjs": "^6.12.6",
+    "@dotenvx/dotenvx": "^1.49.0",
     "@googlemaps/js-api-loader": "^1.16.10",
     "@radix-ui/colors": "^3.0.0",
     "@radix-ui/themes": "^3.2.1",
