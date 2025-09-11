@@ -9,3 +9,10 @@ full-stack app using:
 - [Next.js](https://nextjs.org/) for optimized web hosting and page routing
 - [Tailwind](https://tailwindcss.com/) for building great looking accessible UI
 - [Clerk](https://clerk.com/) for authentication
+
+## TODO
+
+- [ ] Deploy to production.
+- [ ] Check location saving with Google Maps. Make sure it's in the right format.
+- [ ] Make a rough play page.
+- [ ] Try importing a set of activities from Mama Knows North.
