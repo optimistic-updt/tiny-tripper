@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { TextField } from "@radix-ui/themes";
 
 interface GooglePlacesAutocompleteProps {
   value?: string;
-  onChange?: (value: string) => void;
+  onChange?: (value: string, place?: google.maps.places.PlaceResult) => void;
   placeholder?: string;
   apiKey: string;
+  types?: string[];
+  componentRestrictions?: { country?: string | string[] | null };
 }
 
 export default function GooglePlacesAutocomplete({
@@ -16,9 +18,26 @@ export default function GooglePlacesAutocomplete({
   onChange,
   placeholder = "Enter location",
   apiKey,
+  types = ["establishment", "geocode"],
+  componentRestrictions,
 }: GooglePlacesAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+
+  const handlePlaceChanged = useCallback(() => {
+    if (autocompleteRef.current && onChange) {
+      const place = autocompleteRef.current.getPlace();
+      
+      if (place.formatted_address) {
+        onChange(place.formatted_address, place);
+      }
+      
+      // Create new session token for next search
+      sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken();
+    }
+  }, [onChange]);
 
   useEffect(() => {
     const initializeGooglePlaces = async () => {
@@ -36,21 +55,38 @@ export default function GooglePlacesAutocomplete({
 
         await loader.load();
 
-        if (inputRef.current && window.google?.maps?.places) {
-          const autocomplete = new window.google.maps.places.Autocomplete(
+        // Import the Places library using the modern approach
+        const { Autocomplete, AutocompleteSessionToken } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+
+        if (inputRef.current) {
+          // Create session token for billing optimization
+          sessionTokenRef.current = new AutocompleteSessionToken();
+
+          // Create autocomplete with enhanced options
+          const autocompleteOptions: google.maps.places.AutocompleteOptions = {
+            types: types,
+            fields: [
+              "formatted_address", 
+              "name", 
+              "place_id", 
+              "geometry", 
+              "address_components"
+            ],
+          };
+
+          // Add component restrictions if provided
+          if (componentRestrictions?.country !== undefined) {
+            autocompleteOptions.componentRestrictions = {
+              country: componentRestrictions.country
+            };
+          }
+
+          autocompleteRef.current = new Autocomplete(
             inputRef.current,
-            {
-              types: ["establishment", "geocode"],
-              fields: ["formatted_address", "name", "place_id"],
-            },
+            autocompleteOptions
           );
 
-          autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
-            if (place.formatted_address && onChange) {
-              onChange(place.formatted_address);
-            }
-          });
+          autocompleteRef.current.addListener("place_changed", handlePlaceChanged);
 
           setIsLoaded(true);
         }
@@ -60,7 +96,14 @@ export default function GooglePlacesAutocomplete({
     };
 
     initializeGooglePlaces();
-  }, [apiKey, onChange]);
+
+    // Cleanup function
+    return () => {
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [apiKey, types, componentRestrictions, handlePlaceChanged]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (onChange) {
