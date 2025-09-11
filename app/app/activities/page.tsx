@@ -1,38 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { ROUTES } from "@/app/routes";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { SearchBar } from "@/components/SearchBar";
+// import { SearchBar } from "@/components/SearchBar";
 
-type Activity = {
-  _id: string;
-  name: string;
-  description?: string;
-  location?: string;
-  tags?: string[];
-  urgency?: "low" | "medium" | "high";
-  endDate?: string;
-  isPublic?: boolean;
-  userId?: string;
-  _score?: number;
-};
+// type Activity = {
+//   _id: string;
+//   name: string;
+//   description?: string;
+//   location?: string;
+//   tags?: string[];
+//   urgency?: "low" | "medium" | "high";
+//   endDate?: string;
+//   isPublic?: boolean;
+//   userId?: string;
+//   _score?: number;
+// };
 
 export default function ActivitiesPage() {
   const allActivities = useQuery(api.activities.listActivities);
-  const [searchResults, setSearchResults] = useState<Activity[]>([]);
-  const [isSearchActive, setIsSearchActive] = useState(false);
+  // const [searchResults, setSearchResults] = useState<Activity[]>([]);
+  // const [isSearchActive, setIsSearchActive] = useState(false);
 
   const isLoading = false;
 
-  const handleSearchResults = (results: Activity[]) => {
-    setSearchResults(results);
-    setIsSearchActive(results.length > 0 || true); // Show search results even if empty to indicate search was performed
-  };
+  // const handleSearchResults = (results: Activity[]) => {
+  //   setSearchResults(results);
+  //   setIsSearchActive(results.length > 0 || true); // Show search results even if empty to indicate search was performed
+  // };
 
-  const displayActivities = isSearchActive ? searchResults : allActivities;
+  const displayActivities = allActivities;
 
   return (
     <>
@@ -76,20 +75,16 @@ export default function ActivitiesPage() {
                       ))}
                     </div>
                   )}
-                  {"_score" in activity && activity._score && (
-                    <p className="text-xs text-gray-400 mt-2">
-                      Match score: {activity._score.toFixed(3)}
-                    </p>
-                  )}
                 </Link>
               </li>
             ))}
           </ul>
         ) : (
           <div className="text-center text-gray-500 mt-8">
-            {isSearchActive
-              ? "No activities found for your search."
-              : "No activities available."}
+            No activities available.
+            {/*  {isSearchActive
+       90 -                ? "No activities found for your search."
+       91 -                : "No activities available."} */}
           </div>
         )}
       </main>
