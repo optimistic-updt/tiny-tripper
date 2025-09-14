@@ -16,4 +16,9 @@ export default defineSchema({
     vectorField: "embedding",
     dimensions: 1536,
   }),
+
+  tags: defineTable({
+    name: v.string(),
+    createdAt: v.number(),
+  }).index("by_name", ["name"]),
 });

@@ -18,6 +18,7 @@ import {
 } from "@radix-ui/themes";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
+import TagCombobox from "@/components/TagCombobox";
 import { env } from "@/env";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/app/routes";
@@ -31,6 +32,7 @@ type ActivityFormData = {
   isPublic?: boolean;
   rainApproved?: boolean;
   inHome?: boolean;
+  tags?: string[];
 };
 
 export default function CreateActivityPage() {
@@ -54,17 +56,19 @@ export default function CreateActivityPage() {
       isPublic: true,
       rainApproved: false,
       inHome: false,
+      tags: [],
     },
   });
   const isPublic = watch("isPublic");
   const rainApproved = watch("rainApproved");
   const inHome = watch("inHome");
+  const tags = watch("tags") || [];
 
   const onSubmit = async (data: ActivityFormData) => {
     setIsSubmitting(true);
     setSubmitStatus(null);
 
-    const tags = [];
+    const tags = [...(data.tags || [])];
     if (data.rainApproved) {
       tags.push("rain-approved");
     }
@@ -169,6 +173,21 @@ export default function CreateActivityPage() {
                 placeholder="Enter location"
                 apiKey={env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
               />
+            </div>
+
+            <div>
+              <Text size="2" weight="medium" mb="2">
+                Tags
+              </Text>
+              <TagCombobox
+                value={tags}
+                onChange={(tags) => setValue("tags", tags)}
+                placeholder="Add tags (comma-separated)..."
+              />
+              <Text size="1" color="gray" mt="1">
+                Add tags to help categorize your activity. Type to search
+                existing tags or create new ones.
+              </Text>
             </div>
 
             <div>
