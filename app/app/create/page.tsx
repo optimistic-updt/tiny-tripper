@@ -14,6 +14,7 @@ import {
   Callout,
   Heading,
   SegmentedControl,
+  Container,
 } from "@radix-ui/themes";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
@@ -99,10 +100,10 @@ export default function CreateActivityPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <Container className="max-w-2xl mx-auto" px="5">
       <Flex direction="column" gap="6">
         <div>
-          <Heading as="h1" size="8" weight="bold">
+          <Heading as="h2" size="6" weight="bold">
             Create Activity
           </Heading>
           <Text size="3" color="gray">
@@ -180,7 +181,7 @@ export default function CreateActivityPage() {
             <div>
               <Flex align="center" gap="3">
                 <Switch
-                  checked={isPublic}
+                  checked={true}
                   onCheckedChange={(checked) => setValue("isPublic", checked)}
                 />
                 <Text size="2" weight="medium">
@@ -260,6 +261,6 @@ export default function CreateActivityPage() {
           </Callout.Root>
         )}
       </Flex>
-    </div>
+    </Container>
   );
 }

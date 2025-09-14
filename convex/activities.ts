@@ -151,3 +151,107 @@ export const searchActivities = action({
     return activities.filter((activity) => activity !== null);
   },
 });
+
+// getRecommendation prioritizes
+// activities based on:
+
+// 1. Urgency Level (100/50/10
+// points)
+// 2. End Date within 2 weeks
+// (80+ points, bonus for sooner
+// deadlines)
+// 3. User's own activities (30
+// points)
+// 4. Activities with location
+// (10 points)
+// 5. Activities with tags (5
+// points)
+export const getRecommendation = query({
+  args: {
+    excludeIds: v.optional(v.array(v.id("activities"))),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const now = new Date();
+    const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    // Get all available activities
+    const allActivities = await ctx.db
+      .query("activities")
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("isPublic"), true),
+          q.eq(q.field("userId"), identity?.subject),
+        ),
+      )
+      .collect();
+
+    // Filter and score activities
+    const scoredActivities = allActivities
+      .filter((activity) => {
+        // Exclude previously shown activities
+        if (args.excludeIds?.includes(activity._id)) {
+          return false;
+        }
+
+        // Filter out activities that have passed their end date
+        if (activity.endDate) {
+          const endDate = new Date(activity.endDate);
+          if (endDate < now) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .map((activity) => {
+        let score = 0;
+
+        // Priority 1: Urgency (highest weight)
+        if (activity.urgency === "high") {
+          score += 100;
+        } else if (activity.urgency === "medium") {
+          score += 50;
+        } else {
+          score += 10;
+        }
+
+        // Priority 2: End date within next two weeks (high weight)
+        if (activity.endDate) {
+          const endDate = new Date(activity.endDate);
+          if (endDate <= twoWeeksFromNow) {
+            score += 80;
+            // Extra points for activities ending sooner
+            const daysUntilEnd = Math.max(
+              1,
+              Math.ceil(
+                (endDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+              ),
+            );
+            score += Math.max(0, 20 - daysUntilEnd); // More points for sooner deadlines
+          }
+        }
+
+        // Priority 3: User's own activities (medium weight)
+        if (activity.userId === identity?.subject) {
+          score += 30;
+        }
+
+        // Priority 4: Activities with location (small bonus)
+        if (activity.location) {
+          score += 10;
+        }
+
+        // Priority 5: Activities with tags (small bonus for rich content)
+        if (activity.tags && activity.tags.length > 0) {
+          score += 5;
+        }
+
+        return { ...activity, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    // Return the highest scored activity, or null if none found
+    return scoredActivities.length > 0 ? scoredActivities[0] : null;
+  },
+});
