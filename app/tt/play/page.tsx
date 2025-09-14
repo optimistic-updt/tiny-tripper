@@ -12,15 +12,12 @@ import {
   Box,
   VisuallyHidden,
   Flex,
-  Switch,
-  Container,
 } from "@radix-ui/themes";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
 import styles from "./3d_button.module.css";
-import { SlidersHorizontal } from "lucide-react";
 
 interface Activity {
   _id: Id<"activities">;
