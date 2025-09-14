@@ -169,6 +169,12 @@ export const searchActivities = action({
 export const getRecommendation = query({
   args: {
     excludeIds: v.optional(v.array(v.id("activities"))),
+    filters: v.optional(
+      v.object({
+        atHome: v.boolean(),
+        rainproof: v.boolean(),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -198,6 +204,22 @@ export const getRecommendation = query({
         if (activity.endDate) {
           const endDate = new Date(activity.endDate);
           if (endDate < now) {
+            return false;
+          }
+        }
+
+        // Apply tag filters (AND logic)
+        if (args.filters) {
+          const { atHome, rainproof } = args.filters;
+          const tags = activity.tags || [];
+
+          // If atHome filter is active, activity must have "at home" tag
+          if (atHome && !tags.includes("at home")) {
+            return false;
+          }
+
+          // If rainproof filter is active, activity must have "rainproof" tag
+          if (rainproof && !tags.includes("rain-approved")) {
             return false;
           }
         }

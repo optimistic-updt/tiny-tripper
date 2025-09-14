@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+// import { Drawer } from "vaul";
+import { useState, useEffect } from "react";
 import {
   Button,
   Heading,
@@ -11,13 +12,15 @@ import {
   Box,
   VisuallyHidden,
   Flex,
+  Switch,
+  Container,
 } from "@radix-ui/themes";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
 import styles from "./3d_button.module.css";
-import { HamburgerIcon } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 
 interface Activity {
   _id: Id<"activities">;
@@ -38,9 +41,35 @@ export default function PlayPage() {
   >([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [excludeIds, setExcludeIds] = useState<Id<"activities">[]>([]);
+  const [filters, setFilters] = useState({
+    atHome: false,
+    rainproof: false,
+  });
+
+  // Load filters from sessionStorage on mount
+  useEffect(() => {
+    const savedFilters = sessionStorage.getItem("activity-filters");
+    if (savedFilters) {
+      try {
+        setFilters(JSON.parse(savedFilters));
+      } catch (error) {
+        console.error("Failed to parse saved filters:", error);
+      }
+    }
+  }, []);
+
+  // Save filters to sessionStorage when they change
+  useEffect(() => {
+    sessionStorage.setItem("activity-filters", JSON.stringify(filters));
+    // Reset recommendation history and excludeIds when filters change
+    setRecommendationHistory([]);
+    setCurrentIndex(-1);
+    setExcludeIds([]);
+  }, [filters]);
 
   const recommendation = useQuery(api.activities.getRecommendation, {
     excludeIds: excludeIds,
+    filters: filters,
   });
 
   const handlePlayClick = () => {
@@ -100,7 +129,15 @@ export default function PlayPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 flex flex-col items-center min-h-screen">
+    <Flex
+      direction="column"
+      align="center"
+      height="100%"
+      minHeight="0"
+      flexGrow="1"
+      overflowY="auto"
+      p="5"
+    >
       {/* <div className="text-center mb-8">
         <Heading as="h1" size="8" weight="bold">
           Create Activity
@@ -231,11 +268,7 @@ export default function PlayPage() {
       </div>
 
       {/* Controls */}
-      <Flex
-        justify="center"
-        gap="4"
-        style={{ marginTop: "auto", marginBottom: "80px" }}
-      >
+      <Flex justify="center" gap="4" style={{ marginTop: "auto" }}>
         <Button
           size="4"
           disabled={!canGoBack}
@@ -262,10 +295,77 @@ export default function PlayPage() {
           <span className={styles.front}> Let&apos;s Play </span>
         </button>
 
-        <Button size="4" onClick={handleBackClick} variant="soft" radius="full">
-          <HamburgerIcon />
-          <VisuallyHidden>Filters</VisuallyHidden>
-        </Button>
+        {/* <Drawer.Root>
+          <Drawer.Trigger>
+            <Button size="4" variant="soft" radius="full">
+              <SlidersHorizontal />
+              <VisuallyHidden>Filters</VisuallyHidden>
+            </Button>
+          </Drawer.Trigger>
+          <Drawer.Portal>
+            <Drawer.Overlay className="fixed inset-0 bg-black/40" />
+            <Drawer.Content className="bg-white h-fit fixed bottom-0 left-0 right-0 outline-none rounded-t-2xl">
+              <Container className="p-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />
+                <Heading as="h3" size="5" className="mb-6 text-center">
+                  <Drawer.Title>Filter Activities</Drawer.Title>
+                </Heading>
+
+                <div className="space-y-6">
+                  <Flex justify="between" align="center" className="py-2">
+                    <div>
+                      <Text size="4" weight="medium">
+                        At home activities
+                      </Text>
+                      <Text size="2" color="gray">
+                        Show only activities tagged &quot;at home&quot;
+                      </Text>
+                    </div>
+                    <Switch
+                      checked={filters.atHome}
+                      onCheckedChange={(checked) =>
+                        setFilters((prev) => ({ ...prev, atHome: checked }))
+                      }
+                    />
+                  </Flex>
+
+                  <Flex justify="between" align="center" className="py-2">
+                    <div>
+                      <Text size="4" weight="medium">
+                        Rainproof activities
+                      </Text>
+                      <Text size="2" color="gray">
+                        Show only activities tagged &quot;rainproof&quot;
+                      </Text>
+                    </div>
+                    <Switch
+                      checked={filters.rainproof}
+                      onCheckedChange={(checked) =>
+                        setFilters((prev) => ({ ...prev, rainproof: checked }))
+                      }
+                    />
+                  </Flex>
+                </div>
+
+                {(filters.atHome || filters.rainproof) && (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <Button
+                      size="2"
+                      variant="soft"
+                      color="gray"
+                      onClick={() =>
+                        setFilters({ atHome: false, rainproof: false })
+                      }
+                      className="w-full"
+                    >
+                      Clear all filters
+                    </Button>
+                  </div>
+                )}
+              </Container>
+            </Drawer.Content>
+          </Drawer.Portal>
+        </Drawer.Root> */}
       </Flex>
 
       {/* History Counter */}
@@ -277,6 +377,6 @@ export default function PlayPage() {
             </Text>
           </Box>
         )} */}
-    </div>
+    </Flex>
   );
 }

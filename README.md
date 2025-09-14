@@ -14,15 +14,13 @@ Parents in Melbourne
 
 ## TODO
 
-- [ ] better search
-- [ ] Check location saving with Google Maps. Make sure it's in the right format.
-- [ ] Make a rough play page.
-- [ ] Try importing a set of activities from Mama Knows North.
 - [ ] Filters [Home or away] [indoor or outdoor].
+- [ ] Check location saving with Google Maps. Make sure it's in the right format.
 - [ ] add image upload (try llm in browser)
-- [ ] add image generation
+- [ ] Try importing a set of activities from Mama Knows North.
+- [ ] better search
+- [ ] add image generation for activities
 - [ ] ask your location to give distance
-- [ ] add times to activities
 - [ ] hide activities
 - [ ] kid table with nap
 - [ ] ping the weather to better recommend

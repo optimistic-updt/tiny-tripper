@@ -105,7 +105,15 @@ export default function CreateActivityPage() {
   };
 
   return (
-    <Container className="max-w-2xl mx-auto" px="5">
+    <Flex
+      direction="column"
+      align="center"
+      height="100%"
+      minHeight="0"
+      flexGrow="1"
+      overflowY="auto"
+      p="5"
+    >
       <Flex direction="column" gap="4">
         <Box>
           <Heading as="h2" size="6" weight="bold">
@@ -291,6 +299,6 @@ export default function CreateActivityPage() {
           </Callout.Root>
         )}
       </Flex>
-    </Container>
+    </Flex>
   );
 }

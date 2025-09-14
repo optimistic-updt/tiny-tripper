@@ -24,18 +24,26 @@ export default function GooglePlacesAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const sessionTokenRef =
+    useRef<google.maps.places.AutocompleteSessionToken | null>(null);
 
   const handlePlaceChanged = useCallback(() => {
     if (autocompleteRef.current && onChange) {
+      console.log(
+        "handlePlaceChanged",
+        autocompleteRef.current,
+        autocompleteRef.current.getPlace(),
+      );
+
       const place = autocompleteRef.current.getPlace();
-      
+
       if (place.formatted_address) {
         onChange(place.formatted_address, place);
       }
-      
+
       // Create new session token for next search
-      sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken();
+      sessionTokenRef.current =
+        new google.maps.places.AutocompleteSessionToken();
     }
   }, [onChange]);
 
@@ -56,7 +64,8 @@ export default function GooglePlacesAutocomplete({
         await loader.load();
 
         // Import the Places library using the modern approach
-        const { Autocomplete, AutocompleteSessionToken } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+        const { Autocomplete, AutocompleteSessionToken } =
+          (await loader.importLibrary("places")) as google.maps.PlacesLibrary;
 
         if (inputRef.current) {
           // Create session token for billing optimization
@@ -66,27 +75,30 @@ export default function GooglePlacesAutocomplete({
           const autocompleteOptions: google.maps.places.AutocompleteOptions = {
             types: types,
             fields: [
-              "formatted_address", 
-              "name", 
-              "place_id", 
-              "geometry", 
-              "address_components"
+              "formatted_address",
+              "name",
+              "place_id",
+              "geometry",
+              "address_components",
             ],
           };
 
           // Add component restrictions if provided
           if (componentRestrictions?.country !== undefined) {
             autocompleteOptions.componentRestrictions = {
-              country: componentRestrictions.country
+              country: componentRestrictions.country,
             };
           }
 
           autocompleteRef.current = new Autocomplete(
             inputRef.current,
-            autocompleteOptions
+            autocompleteOptions,
           );
 
-          autocompleteRef.current.addListener("place_changed", handlePlaceChanged);
+          autocompleteRef.current.addListener(
+            "place_changed",
+            handlePlaceChanged,
+          );
 
           setIsLoaded(true);
         }
@@ -118,6 +130,7 @@ export default function GooglePlacesAutocomplete({
       onChange={handleInputChange}
       placeholder={placeholder}
       disabled={!isLoaded}
+      size="3"
     />
   );
 }

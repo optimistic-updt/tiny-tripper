@@ -3,10 +3,10 @@ export const ROUTES = {
   home: "/",
   privacyPolicy: "/privacy",
   // app
-  activities: "/app/activities",
-  play: "/app/play",
-  newActivity: "/app/create",
+  activities: "/tt/activities",
+  play: "/tt/play",
+  newActivity: "/tt/create",
   build: {
-    activity: (id: string) => `/app/activities/${id}`,
+    activity: (id: string) => `/tt/activities/${id}`,
   },
 };

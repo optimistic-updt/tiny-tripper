@@ -3,7 +3,7 @@ import { Navbar } from "./Navbar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="background-app-light dark:background-app-dark h-full min-h-screen relative pb-20">
+    <div className="background-app-light dark:background-app-dark">
       <Container px="5" py="2">
         <Flex justify="between">
           <Heading as="h1" size="6" weight="bold">
@@ -14,7 +14,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Flex>
       </Container>
 
-      {children}
+      <Flex
+        direction="column"
+        align="center"
+        // 72px is height of navbar
+        style={{ height: "calc(100dvh - 118px)" }}
+      >
+        {children}
+      </Flex>
 
       <Navbar />
     </div>
