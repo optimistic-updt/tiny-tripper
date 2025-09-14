@@ -13,8 +13,9 @@ import {
   Switch,
   Callout,
   Heading,
-  SegmentedControl,
+  // SegmentedControl,
   Container,
+  Box,
 } from "@radix-ui/themes";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
@@ -105,15 +106,15 @@ export default function CreateActivityPage() {
 
   return (
     <Container className="max-w-2xl mx-auto" px="5">
-      <Flex direction="column" gap="6">
-        <div>
+      <Flex direction="column" gap="4">
+        <Box>
           <Heading as="h2" size="6" weight="bold">
             Create Activity
           </Heading>
           <Text size="3" color="gray">
             Create a new activity to share with others
           </Text>
-        </div>
+        </Box>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Flex direction="column" gap="4">
@@ -125,12 +126,30 @@ export default function CreateActivityPage() {
                 {...register("name", { required: "Name is required" })}
                 placeholder="Enter activity name"
                 color={errors.name ? "red" : undefined}
+                size="3"
               />
               {errors.name && (
                 <Text size="1" color="red" mt="1">
                   {errors.name.message}
                 </Text>
               )}
+            </div>
+
+            <div>
+              <Flex align="center" gap="3">
+                <Switch
+                  checked={true}
+                  onCheckedChange={(checked) => setValue("isPublic", checked)}
+                />
+                <Text size="2" weight="medium">
+                  {isPublic ? "Public Activity" : "Private Activity"}
+                </Text>
+              </Flex>
+              <Text size="1" color="gray" mt="1">
+                {isPublic
+                  ? "Anyone can see this activity (currently only Public)"
+                  : "Only you can see this activity"}
+              </Text>
             </div>
 
             <div>
@@ -141,10 +160,12 @@ export default function CreateActivityPage() {
                 {...register("description")}
                 placeholder="Describe your activity..."
                 rows={3}
+                size="3"
               />
             </div>
 
-            <Flex direction={"column"}>
+            {/* will Come back */}
+            {/* <Flex direction={"column"}>
               <Text size="2" weight="medium" mb="2">
                 Urgency
               </Text>
@@ -161,7 +182,7 @@ export default function CreateActivityPage() {
                 </SegmentedControl.Item>
                 <SegmentedControl.Item value="high">High</SegmentedControl.Item>
               </SegmentedControl.Root>
-            </Flex>
+            </Flex> */}
 
             <div>
               <Text size="2" weight="medium" mb="2">
@@ -169,7 +190,10 @@ export default function CreateActivityPage() {
               </Text>
               <GooglePlacesAutocomplete
                 value={watch("location") || ""}
-                onChange={(value) => setValue("location", value)}
+                onChange={(value) => {
+                  // console.table(value, place);
+                  setValue("location", value);
+                }}
                 placeholder="Enter location"
                 apiKey={env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
               />
@@ -194,24 +218,11 @@ export default function CreateActivityPage() {
               <Text size="2" weight="medium" mb="2">
                 End Date
               </Text>
-              <TextField.Root {...register("endDate")} type="datetime-local" />
-            </div>
-
-            <div>
-              <Flex align="center" gap="3">
-                <Switch
-                  checked={true}
-                  onCheckedChange={(checked) => setValue("isPublic", checked)}
-                />
-                <Text size="2" weight="medium">
-                  {isPublic ? "Public Activity" : "Private Activity"}
-                </Text>
-              </Flex>
-              <Text size="1" color="gray" mt="1">
-                {isPublic
-                  ? "Anyone can see this activity"
-                  : "Only you can see this activity"}
-              </Text>
+              <TextField.Root
+                {...register("endDate")}
+                type="datetime-local"
+                size="3"
+              />
             </div>
 
             <div>

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { ROUTES } from "@/app/routes";
+// import Link from "next/link";
+// import { ROUTES } from "@/app/routes";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 // import { SearchBar } from "@/components/SearchBar";
@@ -48,8 +48,9 @@ export default function ActivitiesPage() {
                 key={activity._id}
                 className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
               >
-                <Link
-                  href={ROUTES.build.activity(String(activity._id))}
+                {/* link */}
+                <div
+                  // href={ROUTES.build.activity(String(activity._id))}
                   className="block"
                 >
                   <h2 className="text-lg font-semibold text-gray-900 mb-2">
@@ -75,7 +76,7 @@ export default function ActivitiesPage() {
                       ))}
                     </div>
                   )}
-                </Link>
+                </div>
               </li>
             ))}
           </ul>
