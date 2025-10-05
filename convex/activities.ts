@@ -4,6 +4,13 @@ import { api, internal } from "./_generated/api";
 import { env } from "./env";
 import OpenAI from "openai";
 import { Doc } from "./_generated/dataModel";
+// import { GeospatialIndex } from "@convex-dev/geospatial";
+// import { components } from "./_generated/api";
+
+// const geospatial = new GeospatialIndex<
+//   Id<"activities">
+//   // { tag?: string }
+// >(components.geospatial);
 
 const OpenAIClient = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -35,7 +42,21 @@ export const createActivityDocument = internalMutation({
     urgency: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     ),
-    location: v.optional(v.string()),
+    location: v.optional(
+      v.object({
+        name: v.string(),
+        placeId: v.string(), // Google Places ID
+        formattedAddress: v.string(),
+        latitude: v.optional(v.number()),
+        longitude: v.optional(v.number()),
+        // -- Structured address fields
+        // street_address VARCHAR(255),
+        // city VARCHAR(100),
+        // state_province VARCHAR(100),
+        // postal_code VARCHAR(20),
+        // country_code CHAR(2),  -- ISO 3166-1 alpha-2
+      }),
+    ),
     endDate: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
     tags: v.optional(v.array(v.string())),
@@ -68,7 +89,21 @@ export const createActivity = action({
     urgency: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     ),
-    location: v.optional(v.string()),
+    location: v.optional(
+      v.object({
+        name: v.string(),
+        placeId: v.string(), // Google Places ID
+        formattedAddress: v.string(),
+        latitude: v.optional(v.number()),
+        longitude: v.optional(v.number()),
+        // -- Structured address fields
+        // street_address VARCHAR(255),
+        // city VARCHAR(100),
+        // state_province VARCHAR(100),
+        // postal_code VARCHAR(20),
+        // country_code CHAR(2),  -- ISO 3166-1 alpha-2
+      }),
+    ),
     endDate: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
     tags: v.optional(v.array(v.string())),
@@ -78,7 +113,8 @@ export const createActivity = action({
     const searchableText = [
       args.name,
       args.description || "",
-      args.location || "", // TODO should location be there?
+      args.location?.name || "",
+      args.location?.formattedAddress || "",
       ...(args.tags || []),
     ].join(" ");
 

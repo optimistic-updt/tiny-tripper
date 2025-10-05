@@ -19,7 +19,6 @@ import {
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 import TagCombobox from "@/components/TagCombobox";
-import { env } from "@/env";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/app/routes";
 
@@ -27,7 +26,13 @@ type ActivityFormData = {
   name: string;
   description?: string;
   urgency?: "low" | "medium" | "high";
-  location?: string;
+  location?: {
+    name: string;
+    placeId: string;
+    formattedAddress: string;
+    latitude: number | undefined;
+    longitude: number | undefined;
+  };
   endDate?: string;
   isPublic?: boolean;
   rainApproved?: boolean;
@@ -196,13 +201,21 @@ export default function CreateActivityPage() {
                 Location
               </Text>
               <GooglePlacesAutocomplete
-                value={watch("location") || ""}
-                onChange={(value) => {
-                  // console.table(value, place);
-                  setValue("location", value);
+                value={watch("location")?.name || ""}
+                onChange={(value, place) => {
+                  if (place) {
+                    setValue("location", {
+                      name: place.name || value,
+                      placeId: place.place_id,
+                      formattedAddress: place.formatted_address,
+                      latitude: place?.geometry?.location?.lat() || undefined,
+                      longitude: place?.geometry?.location?.lng() || undefined,
+                    });
+                  } else {
+                    setValue("location.name", value);
+                  }
                 }}
                 placeholder="Enter location"
-                apiKey={env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
               />
             </div>
 

@@ -14,10 +14,11 @@ Parents in Melbourne
 
 ## TODO
 
-- [ ] Filters [Home or away] [indoor or outdoor].
 - [ ] Check location saving with Google Maps. Make sure it's in the right format.
+- [ ] add convex geo component
 - [ ] add image upload (try llm in browser)
 - [ ] Try importing a set of activities from Mama Knows North.
+- [ ] Filters [Home or away] [indoor or outdoor].
 - [ ] better search
 - [ ] add image generation for activities
 - [ ] ask your location to give distance

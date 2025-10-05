@@ -65,6 +65,7 @@ posthog.ts            # PostHog configuration
 - Server functions use the new Convex function syntax with validators
 - Authentication configured for Clerk integration via `convex/auth.config.ts`
 - Real-time features available through Convex subscriptions
+- **IMPORTANT**: See `.cursor/rules/convex_rules.mdc` for comprehensive Convex development guidelines, including function syntax, validators, schema design, queries, mutations, actions, and best practices
 
 ## Environment Variables
 

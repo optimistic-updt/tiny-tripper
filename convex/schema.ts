@@ -6,7 +6,21 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-    location: v.optional(v.string()),
+    location: v.optional(
+      v.object({
+        name: v.string(),
+        placeId: v.string(), // Google Places ID
+        formattedAddress: v.string(),
+        latitude: v.optional(v.number()),
+        longitude: v.optional(v.number()),
+        // -- Structured address fields
+        // street_address: v.optional(v.string()),
+        // city: v.optional(v.string()),
+        // state_province: v.optional(v.string()),
+        // postal_code: v.optional(v.string()),
+        // country_code: v.optional(v.string()), // ISO 3166-1 alpha-2
+      }),
+    ),
     endDate: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
     userId: v.optional(v.string()),
