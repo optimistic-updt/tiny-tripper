@@ -32,6 +32,11 @@ type ActivityFormData = {
     formattedAddress: string;
     latitude: number | undefined;
     longitude: number | undefined;
+    street_address?: string;
+    city?: string;
+    state_province?: string;
+    postal_code?: string;
+    country_code?: string;
   };
   endDate?: string;
   isPublic?: boolean;
@@ -204,12 +209,23 @@ export default function CreateActivityPage() {
                 value={watch("location")?.name || ""}
                 onChange={(value, place) => {
                   if (place) {
+                    const addressComponents = place.address_components || [];
+                    const getComponent = (type: string) =>
+                      addressComponents.find(c => c.types.includes(type))?.long_name;
+
                     setValue("location", {
                       name: place.name || value,
                       placeId: place.place_id,
                       formattedAddress: place.formatted_address,
                       latitude: place?.geometry?.location?.lat() || undefined,
                       longitude: place?.geometry?.location?.lng() || undefined,
+                      street_address: getComponent("street_number") && getComponent("route")
+                        ? `${getComponent("street_number")} ${getComponent("route")}`
+                        : getComponent("route"),
+                      city: getComponent("locality") || getComponent("sublocality"),
+                      state_province: getComponent("administrative_area_level_1"),
+                      postal_code: getComponent("postal_code"),
+                      country_code: addressComponents.find(c => c.types.includes("country"))?.short_name,
                     });
                   } else {
                     setValue("location.name", value);

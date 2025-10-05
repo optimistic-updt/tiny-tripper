@@ -42,12 +42,6 @@ export default function GooglePlacesAutocomplete({
 
   const handlePlaceChanged = useCallback(() => {
     if (autocompleteRef.current && onChange) {
-      console.log(
-        "handlePlaceChanged",
-        autocompleteRef.current,
-        autocompleteRef.current.getPlace(),
-      );
-
       const place = autocompleteRef.current.getPlace();
 
       if (place.formatted_address) {

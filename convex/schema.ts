@@ -14,11 +14,11 @@ export default defineSchema({
         latitude: v.optional(v.number()),
         longitude: v.optional(v.number()),
         // -- Structured address fields
-        // street_address: v.optional(v.string()),
-        // city: v.optional(v.string()),
-        // state_province: v.optional(v.string()),
-        // postal_code: v.optional(v.string()),
-        // country_code: v.optional(v.string()), // ISO 3166-1 alpha-2
+        street_address: v.optional(v.string()),
+        city: v.optional(v.string()),
+        state_province: v.optional(v.string()),
+        postal_code: v.optional(v.string()),
+        country_code: v.optional(v.string()), // ISO 3166-1 alpha-2
       }),
     ),
     endDate: v.optional(v.string()),

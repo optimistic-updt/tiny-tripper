@@ -49,12 +49,11 @@ export const createActivityDocument = internalMutation({
         formattedAddress: v.string(),
         latitude: v.optional(v.number()),
         longitude: v.optional(v.number()),
-        // -- Structured address fields
-        // street_address VARCHAR(255),
-        // city VARCHAR(100),
-        // state_province VARCHAR(100),
-        // postal_code VARCHAR(20),
-        // country_code CHAR(2),  -- ISO 3166-1 alpha-2
+        street_address: v.optional(v.string()),
+        city: v.optional(v.string()),
+        state_province: v.optional(v.string()),
+        postal_code: v.optional(v.string()),
+        country_code: v.optional(v.string()), // ISO 3166-1 alpha-2
       }),
     ),
     endDate: v.optional(v.string()),
@@ -96,12 +95,11 @@ export const createActivity = action({
         formattedAddress: v.string(),
         latitude: v.optional(v.number()),
         longitude: v.optional(v.number()),
-        // -- Structured address fields
-        // street_address VARCHAR(255),
-        // city VARCHAR(100),
-        // state_province VARCHAR(100),
-        // postal_code VARCHAR(20),
-        // country_code CHAR(2),  -- ISO 3166-1 alpha-2
+        street_address: v.optional(v.string()),
+        city: v.optional(v.string()),
+        state_province: v.optional(v.string()),
+        postal_code: v.optional(v.string()),
+        country_code: v.optional(v.string()), // ISO 3166-1 alpha-2
       }),
     ),
     endDate: v.optional(v.string()),

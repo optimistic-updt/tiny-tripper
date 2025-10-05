@@ -69,7 +69,7 @@ export default function ActivitiesPage() {
                 )}
                 {activity.location && (
                   <p className="text-sm text-gray-500 mb-1">
-                    📍 {activity.location}
+                    📍 {activity.location.formattedAddress}
                   </p>
                 )}
                 {activity.tags && activity.tags.length > 0 && (
