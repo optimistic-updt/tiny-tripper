@@ -15,26 +15,15 @@ import {
 } from "@radix-ui/themes";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 
 import styles from "./3d_button.module.css";
 
-interface Activity {
-  _id: Id<"activities">;
-  name: string;
-  description?: string;
-  urgency: "low" | "medium" | "high";
-  location?: string;
-  endDate?: string;
-  isPublic?: boolean;
-  userId?: string;
-  tags?: string[];
-  score: number;
-}
+type Recommendation = Doc<"activities"> & { score: number };
 
 export default function PlayPage() {
   const [recommendationHistory, setRecommendationHistory] = useState<
-    Activity[]
+    Recommendation[]
   >([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [excludeIds, setExcludeIds] = useState<Id<"activities">[]>([]);
@@ -174,7 +163,9 @@ export default function PlayPage() {
                     <Text size="2" weight="bold" color="gray">
                       Location
                     </Text>
-                    <Text size="3">📍 {currentActivity.location}</Text>
+                    <Text size="3">
+                      📍 {currentActivity.location.formattedAddress}
+                    </Text>
                   </div>
                 )}
 

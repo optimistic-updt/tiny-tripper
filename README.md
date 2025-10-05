@@ -14,7 +14,6 @@ Parents in Melbourne
 
 ## TODO
 
-- [ ] Check location saving with Google Maps. Make sure it's in the right format.
 - [ ] add convex geo component
 - [ ] add image upload (try llm in browser)
 - [ ] Try importing a set of activities from Mama Knows North.

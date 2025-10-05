@@ -3,22 +3,10 @@
 import { useState, useCallback } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
-
-type Activity = {
-  _id: string;
-  name: string;
-  description?: string;
-  location?: string;
-  tags?: string[];
-  urgency?: "low" | "medium" | "high";
-  endDate?: string;
-  isPublic?: boolean;
-  userId?: string;
-  _score?: number;
-};
+import { Doc } from "@/convex/_generated/dataModel";
 
 interface SearchBarProps {
-  onSearchResults: (results: Activity[]) => void;
+  onSearchResults: (results: Doc<"activities">[]) => void;
   placeholder?: string;
 }
 
