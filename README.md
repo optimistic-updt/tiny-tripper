@@ -14,9 +14,9 @@ Parents in Melbourne
 
 ## TODO
 
-- [ ] add convex geo component
 - [ ] add image upload (try llm in browser)
 - [ ] Try importing a set of activities from Mama Knows North.
+- [ ] PUSH TO PEOPLE
 - [ ] Filters [Home or away] [indoor or outdoor].
 - [ ] better search
 - [ ] add image generation for activities
