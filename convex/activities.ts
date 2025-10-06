@@ -27,7 +27,7 @@ const generateEmbedding = async (text: string) => {
     return embedding.data[0].embedding;
 
     // TODO here
-  } catch (error) {
+  } catch {
     return [];
   }
 };

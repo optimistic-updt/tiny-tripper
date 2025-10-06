@@ -3,7 +3,7 @@
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Button,
   Flex,
@@ -19,7 +19,7 @@ import {
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 import TagCombobox from "@/components/TagCombobox";
-import ImageUpload from "@/components/ImageUpload";
+import ImageUpload, { type ImageUploadHandle } from "@/components/ImageUpload";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/app/routes";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -56,6 +56,7 @@ export default function CreateActivityPage() {
     message: string;
   } | null>(null);
   const router = useRouter();
+  const imageUploadRef = useRef<ImageUploadHandle>(null);
 
   const {
     register,
@@ -92,6 +93,11 @@ export default function CreateActivityPage() {
     }
 
     try {
+      // Auto-upload pending image if user forgot to click upload
+      if (imageUploadRef.current) {
+        await imageUploadRef.current.uploadPendingImage();
+      }
+
       await createActivity({
         name: data.name,
         description: data.description || undefined,
@@ -268,6 +274,7 @@ export default function CreateActivityPage() {
                 Image
               </Text>
               <ImageUpload
+                ref={imageUploadRef}
                 value={imageId}
                 onChange={(storageId) => setValue("imageId", storageId)}
               />
