@@ -26,6 +26,7 @@ export default defineSchema({
     userId: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     embedding: v.optional(v.array(v.float64())),
+    imageId: v.optional(v.id("_storage")),
   }).vectorIndex("by_embedding", {
     vectorField: "embedding",
     dimensions: 1536,

@@ -19,8 +19,10 @@ import {
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 import TagCombobox from "@/components/TagCombobox";
+import ImageUpload from "@/components/ImageUpload";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/app/routes";
+import type { Id } from "@/convex/_generated/dataModel";
 
 type ActivityFormData = {
   name: string;
@@ -43,6 +45,7 @@ type ActivityFormData = {
   rainApproved?: boolean;
   inHome?: boolean;
   tags?: string[];
+  imageId?: Id<"_storage">;
 };
 
 export default function CreateActivityPage() {
@@ -67,12 +70,14 @@ export default function CreateActivityPage() {
       rainApproved: false,
       inHome: false,
       tags: [],
+      imageId: undefined,
     },
   });
   const isPublic = watch("isPublic");
   const rainApproved = watch("rainApproved");
   const inHome = watch("inHome");
   const tags = watch("tags") || [];
+  const imageId = watch("imageId");
 
   const onSubmit = async (data: ActivityFormData) => {
     setIsSubmitting(true);
@@ -95,6 +100,7 @@ export default function CreateActivityPage() {
         endDate: data.endDate || undefined,
         isPublic: data.isPublic || false,
         tags: tags.length > 0 ? tags : undefined,
+        imageId: data.imageId || undefined,
       });
 
       setSubmitStatus({
@@ -254,6 +260,19 @@ export default function CreateActivityPage() {
               <Text size="1" color="gray" mt="1">
                 Add tags to help categorize your activity. Type to search
                 existing tags or create new ones.
+              </Text>
+            </div>
+
+            <div>
+              <Text size="2" weight="medium" mb="2">
+                Image
+              </Text>
+              <ImageUpload
+                value={imageId}
+                onChange={(storageId) => setValue("imageId", storageId)}
+              />
+              <Text size="1" color="gray" mt="1">
+                Add an image to your activity (optional)
               </Text>
             </div>
 

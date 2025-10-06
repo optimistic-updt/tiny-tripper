@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, action, internalMutation } from "./_generated/server";
+import { query, action, internalMutation, mutation } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { env } from "./env";
 import OpenAI from "openai";
@@ -35,6 +35,12 @@ const generateEmbedding = async (text: string) => {
 // Write your Convex functions in any file inside this directory (`convex`).
 // See https://docs.convex.dev/functions for more.
 
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 export const createActivityDocument = internalMutation({
   args: {
     name: v.string(),
@@ -60,6 +66,7 @@ export const createActivityDocument = internalMutation({
     isPublic: v.optional(v.boolean()),
     tags: v.optional(v.array(v.string())),
     embedding: v.optional(v.array(v.float64())),
+    imageId: v.optional(v.id("_storage")),
   },
 
   handler: async (ctx, args) => {
@@ -75,6 +82,7 @@ export const createActivityDocument = internalMutation({
       userId: identity?.subject,
       tags: args.tags,
       embedding: args.embedding,
+      imageId: args.imageId,
     });
 
     if (args.location?.latitude && args.location?.longitude) {
@@ -120,6 +128,7 @@ export const createActivity = action({
     endDate: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
     tags: v.optional(v.array(v.string())),
+    imageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     // TODO - test if it's better to embed the whole activity OR
