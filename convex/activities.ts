@@ -3,14 +3,14 @@ import { query, action, internalMutation } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { env } from "./env";
 import OpenAI from "openai";
-import { Doc } from "./_generated/dataModel";
-// import { GeospatialIndex } from "@convex-dev/geospatial";
-// import { components } from "./_generated/api";
+import { Id, Doc } from "./_generated/dataModel";
+import { GeospatialIndex } from "@convex-dev/geospatial";
+import { components } from "./_generated/api";
 
-// const geospatial = new GeospatialIndex<
-//   Id<"activities">
-//   // { tag?: string }
-// >(components.geospatial);
+const geospatial = new GeospatialIndex<
+  Id<"activities">,
+  { tags: string[]; urgency: "low" | "medium" | "high" }
+>(components.geospatial);
 
 const OpenAIClient = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -76,6 +76,21 @@ export const createActivityDocument = internalMutation({
       tags: args.tags,
       embedding: args.embedding,
     });
+
+    if (args.location?.latitude && args.location?.longitude) {
+      await geospatial.insert(
+        ctx,
+        activityId,
+        {
+          latitude: args.location.latitude,
+          longitude: args.location.longitude,
+        },
+        {
+          tags: args.tags || [],
+          urgency: args.urgency || "medium",
+        },
+      );
+    }
 
     return activityId;
   },

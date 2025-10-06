@@ -211,7 +211,8 @@ export default function CreateActivityPage() {
                   if (place) {
                     const addressComponents = place.address_components || [];
                     const getComponent = (type: string) =>
-                      addressComponents.find(c => c.types.includes(type))?.long_name;
+                      addressComponents.find((c) => c.types.includes(type))
+                        ?.long_name;
 
                     setValue("location", {
                       name: place.name || value,
@@ -219,13 +220,19 @@ export default function CreateActivityPage() {
                       formattedAddress: place.formatted_address,
                       latitude: place?.geometry?.location?.lat() || undefined,
                       longitude: place?.geometry?.location?.lng() || undefined,
-                      street_address: getComponent("street_number") && getComponent("route")
-                        ? `${getComponent("street_number")} ${getComponent("route")}`
-                        : getComponent("route"),
-                      city: getComponent("locality") || getComponent("sublocality"),
-                      state_province: getComponent("administrative_area_level_1"),
+                      street_address:
+                        getComponent("street_number") && getComponent("route")
+                          ? `${getComponent("street_number")} ${getComponent("route")}`
+                          : getComponent("route"),
+                      city:
+                        getComponent("locality") || getComponent("sublocality"),
+                      state_province: getComponent(
+                        "administrative_area_level_1",
+                      ),
                       postal_code: getComponent("postal_code"),
-                      country_code: addressComponents.find(c => c.types.includes("country"))?.short_name,
+                      country_code: addressComponents.find((c) =>
+                        c.types.includes("country"),
+                      )?.short_name,
                     });
                   } else {
                     setValue("location.name", value);
