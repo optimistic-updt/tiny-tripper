@@ -1,6 +1,6 @@
 {
   "name": "Tiny Tripper",
-  "short_name": "Tiny Tripper",
+  "short_name": "TT",
   "description": "Recommend the BEST activity to do with your kids based on your location.",
   "start_url": "/tt/play",
   "display": "standalone",
