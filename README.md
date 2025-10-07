@@ -10,7 +10,7 @@ Parents in Melbourne
 
 ## Time Spent
 
-50 hrs
+50 hrs ++++++
 
 ## TODO
 
@@ -41,3 +41,5 @@ full-stack app using:
 
 - https://melbournewithsiri.com.au/events-whats-on-in-melbourne/
 - mamaKnows
+
+## Scraping pipeline

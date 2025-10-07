@@ -9,7 +9,7 @@ export default defineSchema({
     location: v.optional(
       v.object({
         name: v.string(),
-        placeId: v.string(), // Google Places ID
+        placeId: v.optional(v.string()), // Google Places ID
         formattedAddress: v.string(),
         latitude: v.optional(v.number()),
         longitude: v.optional(v.number()),
