@@ -1,0 +1,16 @@
+{
+  "name": "Tiny Tripper",
+  "short_name": "Tiny Tripper",
+  "description": "Recommend the BEST activity to do with your kids based on your location.",
+  "start_url": "/tt/play",
+  "display": "standalone",
+  "background_color": "#fefcfa",
+  "theme_color": "#FF6348",
+  "icons": [
+    {
+      "src": "/convex.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
