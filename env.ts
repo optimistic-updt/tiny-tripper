@@ -2,18 +2,7 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
 export const env = createEnv({
-  server: {
-    // CONVEX_DEPLOYMENT: z.string(),
-    // CLERK_SECRET_KEY: z.string().startsWith("sk_"),
-    // CLERK_JWT_ISSUER_DOMAIN: z.string(),
-    // GOOGLE_CLIENT_ID: z.string(),
-    // GOOGLE_CLIENT_SECRET: z.string(),
-    // GITHUB_CLIENT_ID: z.string(),
-    // GITHUB_CLIENT_SECRET: z.string(),
-    // DISCORD_CLIENT_ID: z.string(),
-    // DISCORD_CLIENT_SECRET: z.string(),
-    // OPENAI_API_KEY: z.string().startsWith("sk-"),
-  },
+  server: {},
   client: {
     NEXT_PUBLIC_CONVEX_URL: z.string().startsWith("https://"),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().startsWith("phc_"),

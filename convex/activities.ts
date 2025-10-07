@@ -131,7 +131,6 @@ export const createActivity = action({
     imageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    // TODO - test if it's better to embed the whole activity OR
     const searchableText = [
       args.name,
       args.description || "",

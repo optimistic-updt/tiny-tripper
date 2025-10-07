@@ -22,6 +22,7 @@ Parents in Melbourne
 - [ ] ask your location to give distance
 - [ ] hide activities
 - [ ] kid table with nap
+- [ ] BACKEND - hook in "what's on page" to constantly scrape information
 - [ ] ping the weather to better recommend
 - [ ] cleverly suggest tags when creating a activity
 - [ ] comes with option tailored to your preferences
@@ -35,3 +36,8 @@ full-stack app using:
 - [Next.js](https://nextjs.org/) for optimized web hosting and page routing
 - [Tailwind](https://tailwindcss.com/) for building great looking accessible UI
 - [Clerk](https://clerk.com/) for authentication
+
+## What's on websites
+
+- https://melbournewithsiri.com.au/events-whats-on-in-melbourne/
+- mamaKnows
