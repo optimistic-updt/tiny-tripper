@@ -82,3 +82,4 @@ Environment variables are type-safe using T3 Env. See `env.ts` for the complete 
 - PostHog provider enables analytics tracking
 - Radix UI Themes provides consistent design system
 - All Convex functions follow the new syntax with explicit args and returns validators
+- Always check the typescript and eslint errors before trying to commit
