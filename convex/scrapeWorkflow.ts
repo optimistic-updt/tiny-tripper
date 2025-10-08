@@ -1,11 +1,10 @@
-// "use node";
-
 import { WorkflowManager } from "@convex-dev/workflow";
 import { components, internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { RawActivity } from "./scraping";
 import type { StandardizedActivity } from "./formatting";
 import type { Doc } from "./_generated/dataModel";
+import { mutation } from "./_generated/server";
 
 const workflow = new WorkflowManager(components.workflow);
 
@@ -42,7 +41,10 @@ export const websiteScrapeWorkflow = workflow.define({
       }),
     ),
   },
-  handler: async (step, args): Promise<{
+  handler: async (
+    step,
+    args,
+  ): Promise<{
     success: boolean;
     activitiesProcessed: number;
     message?: string;
@@ -84,17 +86,18 @@ export const websiteScrapeWorkflow = workflow.define({
     }
 
     // Step 2: Standardize data
-    const standardizedActivities: StandardizedActivity[] = await step.runMutation(
-      internal.formatting.standardizeActivities,
-      {
-        rawActivities,
-        config: {
-          urgencyDefault: config.urgencyDefault,
-          isPublic: config.isPublic,
+    const standardizedActivities: StandardizedActivity[] =
+      await step.runMutation(
+        internal.formatting.standardizeActivities,
+        {
+          rawActivities,
+          config: {
+            urgencyDefault: config.urgencyDefault,
+            isPublic: config.isPublic,
+          },
         },
-      },
-      { name: "standardize-activities" },
-    );
+        { name: "standardize-activities" },
+      );
 
     console.log(`Standardized ${standardizedActivities.length} activities`);
 
@@ -103,12 +106,15 @@ export const websiteScrapeWorkflow = workflow.define({
 
     const [imagesMap, geocodedMap, embeddingBatchId]: [
       Record<number, string>,
-      Record<number, {
-        latitude: number;
-        longitude: number;
-        placeId: string;
-        formattedAddress: string;
-      }>,
+      Record<
+        number,
+        {
+          latitude: number;
+          longitude: number;
+          placeId: string;
+          formattedAddress: string;
+        }
+      >,
       string,
     ] = await Promise.all([
       // 3a: Process images
@@ -179,7 +185,9 @@ export const websiteScrapeWorkflow = workflow.define({
     }
 
     // Step 4: Merge all data
-    const mergedActivities: Array<Omit<Doc<"activities">, "_id" | "_creationTime">> = await step.runMutation(
+    const mergedActivities: Array<
+      Omit<Doc<"activities">, "_id" | "_creationTime">
+    > = await step.runMutation(
       internal.formatting.mergeActivityData,
       {
         activities: standardizedActivities,
@@ -230,5 +238,29 @@ export const websiteScrapeWorkflow = workflow.define({
         jsonlContent,
       };
     }
+  },
+});
+
+export const startWebsiteScrapeWorkflow = mutation({
+  args: {
+    url: v.string(),
+    config: v.optional(
+      v.object({
+        maxDepth: v.optional(v.number()),
+        maxPages: v.optional(v.number()),
+        autoImport: v.optional(v.boolean()),
+        urgencyDefault: v.optional(
+          v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+        ),
+        isPublic: v.optional(v.boolean()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await workflow.start(
+      ctx,
+      internal.scrapeWorkflow.websiteScrapeWorkflow,
+      args,
+    );
   },
 });

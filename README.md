@@ -43,3 +43,9 @@ full-stack app using:
 - mamaKnows
 
 ## Scraping pipeline
+
+### Scraper
+
+- [FIRECRAWL](https://www.firecrawl.dev/pricing) - can pay as you go or monthly - TBD 200activities might be $14
+- [ScraperAPI](https://www.scraperapi.com/pricing/) - $49/month
+- [apify](https://apify.com/store/categories?sortBy=popularity) for insta + other stuff
