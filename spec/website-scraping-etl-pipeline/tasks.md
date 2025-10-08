@@ -4,7 +4,7 @@
 
 _Requirements: 10_
 
-**Status**: pending
+**Status**: completed
 
 **Dependencies**: None
 
@@ -53,7 +53,7 @@ _Requirements: 10_
 
 _Requirements: 2, 10_
 
-**Status**: pending
+**Status**: completed
 
 **Dependencies**: Task 1
 
@@ -108,7 +108,7 @@ _Requirements: 2, 10_
 
 _Requirements: 3_
 
-**Status**: pending
+**Status**: completed
 
 **Dependencies**: Task 2
 
