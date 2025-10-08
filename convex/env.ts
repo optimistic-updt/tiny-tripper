@@ -13,6 +13,7 @@ export const env = createEnv({
     DISCORD_CLIENT_SECRET: z.string(),
     OPENAI_API_KEY: z.string().startsWith("sk-"),
     FIRECRAWL_API_KEY: z.string().min(1),
+    GOOGLE_MAPS_API_KEY: z.string().min(1),
   },
   client: {},
   clientPrefix: "NEXT_PUBLIC_",

@@ -11,6 +11,7 @@
 import type * as activities from "../activities.js";
 import type * as env from "../env.js";
 import type * as formatting from "../formatting.js";
+import type * as imageProcessing from "../imageProcessing.js";
 import type * as scraping from "../scraping.js";
 import type * as tags from "../tags.js";
 
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   activities: typeof activities;
   env: typeof env;
   formatting: typeof formatting;
+  imageProcessing: typeof imageProcessing;
   scraping: typeof scraping;
   tags: typeof tags;
 }>;
