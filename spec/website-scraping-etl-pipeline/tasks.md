@@ -314,7 +314,7 @@ _Requirements: 5_
 
 _Requirements: 6_
 
-**Status**: pending
+**Status**: completed
 
 **Dependencies**: Task 3
 
