@@ -1,6 +1,4 @@
-"use node";
-
-import { action } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
 import { env } from "./env";
@@ -54,7 +52,7 @@ function createEmbeddingText(activity: StandardizedActivity): string {
  * Submit a batch job to OpenAI for embedding generation
  * Returns the batch ID for polling
  */
-export const submitEmbeddingBatch = action({
+export const submitEmbeddingBatch = internalAction({
   args: {
     activities: v.array(v.any()),
   },
@@ -62,7 +60,9 @@ export const submitEmbeddingBatch = action({
     const activities = args.activities as StandardizedActivity[];
     const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
-    console.log(`Preparing batch embedding requests for ${activities.length} activities`);
+    console.log(
+      `Preparing batch embedding requests for ${activities.length} activities`,
+    );
 
     // Prepare batch requests
     const batchRequests: BatchRequest[] = activities.map((activity, i) => ({
@@ -109,14 +109,11 @@ export const submitEmbeddingBatch = action({
  * Poll a batch job and retrieve embeddings if completed
  * Returns null if batch is still in progress, or a map of activity index to embedding vector
  */
-export const pollEmbeddingBatch = action({
+export const pollEmbeddingBatch = internalAction({
   args: {
     batchId: v.string(),
   },
-  handler: async (
-    _ctx,
-    args,
-  ): Promise<Record<number, number[]> | null> => {
+  handler: async (_ctx, args): Promise<Record<number, number[]> | null> => {
     const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
     console.log(`Polling batch job: ${args.batchId}`);
@@ -128,7 +125,11 @@ export const pollEmbeddingBatch = action({
 
     // If not completed, return null
     if (batch.status !== "completed") {
-      if (batch.status === "failed" || batch.status === "expired" || batch.status === "cancelled") {
+      if (
+        batch.status === "failed" ||
+        batch.status === "expired" ||
+        batch.status === "cancelled"
+      ) {
         throw new Error(`Batch job failed with status: ${batch.status}`);
       }
       return null;

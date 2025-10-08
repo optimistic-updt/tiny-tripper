@@ -1,7 +1,7 @@
 "use node";
 
 import FirecrawlApp from "@mendable/firecrawl-js";
-import { action } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { env } from "./env";
 
@@ -72,7 +72,7 @@ const MAX_PAGES = 150;
 /**
  * Scrape a website and extract activity data using Firecrawl
  */
-export const scrapeWebsite = action({
+export const scrapeWebsite = internalAction({
   args: {
     url: v.string(),
     maxDepth: v.optional(v.number()),

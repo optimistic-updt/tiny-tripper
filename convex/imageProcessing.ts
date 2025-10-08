@@ -1,6 +1,4 @@
-"use node";
-
-import { action } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
 
@@ -11,7 +9,9 @@ async function downloadImage(url: string): Promise<Blob> {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to download image: ${response.status} ${response.statusText}`,
+    );
   }
 
   const contentType = response.headers.get("content-type");
@@ -26,7 +26,7 @@ async function downloadImage(url: string): Promise<Blob> {
  * Process images for activities: download from URLs and upload to Convex storage
  * Returns a map of activity index to storage ID
  */
-export const processImages = action({
+export const processImages = internalAction({
   args: {
     activities: v.array(v.any()),
   },
@@ -54,7 +54,9 @@ export const processImages = action({
         const storageId = await ctx.storage.store(imageBlob);
 
         imageMap[i] = storageId;
-        console.log(`Successfully stored image for activity ${i}: ${storageId}`);
+        console.log(
+          `Successfully stored image for activity ${i}: ${storageId}`,
+        );
       } catch (error) {
         // Log error but don't fail the entire pipeline
         console.error(

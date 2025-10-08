@@ -1,6 +1,6 @@
 "use node";
 
-import { action } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
 import { env } from "./env";
@@ -114,7 +114,7 @@ async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
  * Geocode addresses for all activities with location data
  * Returns a map of activity index to geocoded location data
  */
-export const geocodeAddresses = action({
+export const geocodeAddresses = internalAction({
   args: {
     activities: v.array(v.any()),
   },

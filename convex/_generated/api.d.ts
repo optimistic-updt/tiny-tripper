@@ -9,9 +9,13 @@
  */
 
 import type * as activities from "../activities.js";
+import type * as embeddings from "../embeddings.js";
 import type * as env from "../env.js";
 import type * as formatting from "../formatting.js";
+import type * as geocoding from "../geocoding.js";
 import type * as imageProcessing from "../imageProcessing.js";
+import type * as importing from "../importing.js";
+import type * as scrapeWorkflow from "../scrapeWorkflow.js";
 import type * as scraping from "../scraping.js";
 import type * as tags from "../tags.js";
 
@@ -31,9 +35,13 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   activities: typeof activities;
+  embeddings: typeof embeddings;
   env: typeof env;
   formatting: typeof formatting;
+  geocoding: typeof geocoding;
   imageProcessing: typeof imageProcessing;
+  importing: typeof importing;
+  scrapeWorkflow: typeof scrapeWorkflow;
   scraping: typeof scraping;
   tags: typeof tags;
 }>;
