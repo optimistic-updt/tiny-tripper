@@ -51,7 +51,7 @@ export const createActivityDocument = internalMutation({
     location: v.optional(
       v.object({
         name: v.string(),
-        placeId: v.string(), // Google Places ID
+        placeId: v.optional(v.string()), // Google Places ID
         formattedAddress: v.string(),
         latitude: v.optional(v.number()),
         longitude: v.optional(v.number()),
@@ -62,6 +62,7 @@ export const createActivityDocument = internalMutation({
         country_code: v.optional(v.string()), // ISO 3166-1 alpha-2
       }),
     ),
+    startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
     tags: v.optional(v.array(v.string())),
@@ -77,6 +78,7 @@ export const createActivityDocument = internalMutation({
       description: args.description,
       urgency: args.urgency ?? "medium",
       location: args.location,
+      startDate: args.startDate,
       endDate: args.endDate,
       isPublic: args.isPublic ?? false,
       userId: identity?.subject,

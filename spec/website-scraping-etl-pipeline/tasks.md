@@ -468,7 +468,7 @@ _Requirements: 7_
 
 _Requirements: 8_
 
-**Status**: pending
+**Status**: completed
 
 **Dependencies**: Task 7
 
@@ -550,7 +550,7 @@ _Requirements: 8_
 
 _Requirements: 7, 8_
 
-**Status**: pending
+**Status**: completed
 
 **Dependencies**: Task 7
 
