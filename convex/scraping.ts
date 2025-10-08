@@ -1,3 +1,5 @@
+"use node";
+
 import FirecrawlApp from "@mendable/firecrawl-js";
 import { action } from "./_generated/server";
 import { v } from "convex/values";
