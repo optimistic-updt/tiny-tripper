@@ -30,7 +30,7 @@ export const processImages = action({
   args: {
     activities: v.array(v.any()),
   },
-  handler: async (ctx, args): Promise<Record<number, string>> => {
+  handler: async (ctx, args) => {
     const activities = args.activities as StandardizedActivity[];
     const imageMap: Record<number, string> = {};
 

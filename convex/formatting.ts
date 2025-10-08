@@ -1,6 +1,7 @@
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { RawActivity } from "./scraping";
+import type { Doc, Id } from "./_generated/dataModel";
 
 export interface StandardizedActivity {
   name: string;
@@ -123,5 +124,97 @@ export const standardizeActivities = internalMutation({
     );
 
     return standardized;
+  },
+});
+
+/**
+ * Merge standardized activities with processed data (images, geocoding, embeddings)
+ * into complete activity records ready for database import
+ */
+export const mergeActivityData = internalMutation({
+  args: {
+    activities: v.array(v.any()),
+    images: v.any(), // Record<number, Id<"_storage">>
+    geocoded: v.any(), // Record<number, GeocodeResult>
+    embeddings: v.any(), // Record<number, number[]>
+  },
+  handler: async (
+    _ctx,
+    args,
+  ): Promise<Omit<Doc<"activities">, "_id" | "_creationTime">[]> => {
+    const activities = args.activities as StandardizedActivity[];
+    const images = args.images as Record<number, Id<"_storage">>;
+    const geocoded = args.geocoded as Record<
+      number,
+      {
+        latitude: number;
+        longitude: number;
+        placeId: string;
+        formattedAddress: string;
+        street_address?: string;
+        city?: string;
+        state_province?: string;
+        postal_code?: string;
+        country_code?: string;
+      }
+    >;
+    const embeddings = args.embeddings as Record<number, number[]>;
+
+    console.log(`Merging data for ${activities.length} activities`);
+
+    const merged: Omit<Doc<"activities">, "_id" | "_creationTime">[] =
+      activities.map((activity, i) => {
+        const result: Omit<Doc<"activities">, "_id" | "_creationTime"> = {
+          name: activity.name,
+          description: activity.description,
+          urgency: activity.urgency,
+          isPublic: activity.isPublic,
+          location: activity.location,
+          startDate: activity.startDate,
+          endDate: activity.endDate,
+          tags: activity.tags,
+        };
+
+      // Merge image storage ID
+      if (images[i]) {
+        result.imageId = images[i];
+      }
+      // Note: imageURL is not included in MergedActivity interface, so it's automatically removed
+
+      // Merge geocoded data
+      if (geocoded[i] && result.location) {
+        result.location = {
+          ...result.location,
+          latitude: geocoded[i].latitude,
+          longitude: geocoded[i].longitude,
+          placeId: geocoded[i].placeId,
+          // Override formattedAddress from geocoding if available
+          formattedAddress:
+            geocoded[i].formattedAddress || result.location.formattedAddress,
+          // Merge other address components (prefer geocoded data)
+          street_address:
+            geocoded[i].street_address || result.location.street_address,
+          city: geocoded[i].city || result.location.city,
+          state_province:
+            geocoded[i].state_province || result.location.state_province,
+          postal_code: geocoded[i].postal_code || result.location.postal_code,
+          country_code:
+            geocoded[i].country_code || result.location.country_code,
+        };
+      }
+
+      // Merge embedding
+      if (embeddings[i]) {
+        result.embedding = embeddings[i];
+      }
+
+      return result;
+    });
+
+    console.log(
+      `Merged complete. ${Object.keys(images).length} with images, ${Object.keys(geocoded).length} with geocoding, ${Object.keys(embeddings).length} with embeddings`,
+    );
+
+    return merged;
   },
 });
