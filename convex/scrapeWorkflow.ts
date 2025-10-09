@@ -24,7 +24,9 @@ interface ImportSummary {
  * 3. Process images, geocode addresses, generate embeddings (parallel)
  * 4. Poll embedding batch until complete (with durable sleep)
  * 5. Merge all data
- * 6. Import to database or generate JSON-L file
+ * 6. Generate JSONL content
+ * 7. Store JSONL file to storage
+ * 8. Conditionally import to database if autoImport is enabled
  */
 export const websiteScrapeWorkflow = workflow.define({
   args: {
@@ -40,6 +42,7 @@ export const websiteScrapeWorkflow = workflow.define({
         ),
         isPublic: v.optional(v.boolean()),
         tagsHint: v.optional(v.array(v.string())),
+        useMockScrape: v.optional(v.boolean()),
       }),
     ),
   },
@@ -50,8 +53,10 @@ export const websiteScrapeWorkflow = workflow.define({
     success: boolean;
     activitiesProcessed: number;
     message?: string;
-    importSummary?: ImportSummary;
+    storageId?: string;
+    filename?: string;
     jsonlContent?: string;
+    importSummary?: ImportSummary;
   }> => {
     // Apply config defaults
     const config = {
@@ -62,6 +67,7 @@ export const websiteScrapeWorkflow = workflow.define({
       urgencyDefault: args.config?.urgencyDefault || "medium",
       isPublic: args.config?.isPublic ?? true,
       tagsHint: args.config?.tagsHint || undefined,
+      useMockScrape: args.config?.useMockScrape ?? false,
     };
 
     console.log(`Starting scrape workflow for URL: ${args.url}`);
@@ -76,6 +82,7 @@ export const websiteScrapeWorkflow = workflow.define({
         maxPages: config.maxPages,
         maxExtractions: config.maxExtractions,
         tagsHint: config.tagsHint,
+        useMockScrape: config.useMockScrape,
       },
       { name: "scrape-website" },
     );
@@ -182,7 +189,40 @@ export const websiteScrapeWorkflow = workflow.define({
 
     console.log(`Merged ${mergedActivities.length} complete activities`);
 
-    // Step 5: Import to database or generate JSON-L file
+    // Step 5a: Generate a unique run ID for this scrape
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const urlSlug = args.url
+      .replace(/^https?:\/\//, "")
+      .replace(/[^a-z0-9]/gi, "-")
+      .slice(0, 30);
+    const runId = `${timestamp}-${urlSlug}`;
+
+    // Step 5b: Generate JSONL content
+    console.log("Generating JSONL file");
+
+    const jsonlContent: string = await step.runMutation(
+      internal.importing.generateJsonL,
+      { activities: mergedActivities },
+      { name: "generate-jsonl" },
+    );
+
+    console.log(
+      `Generated JSONL content with ${mergedActivities.length} activities`,
+    );
+
+    // Step 5c: Store JSONL file to storage
+    console.log("Storing JSONL file to storage");
+
+    const { storageId, filename }: { storageId: string; filename: string } =
+      await step.runAction(
+        internal.importing.storeJsonL,
+        { jsonlContent, runId },
+        { name: "store-jsonl" },
+      );
+
+    console.log(`Stored JSONL file: ${filename} (Storage ID: ${storageId})`);
+
+    // Step 5d: Conditionally import to database if autoImport is enabled
     if (config.autoImport) {
       console.log("Auto-import enabled, importing to database");
 
@@ -199,24 +239,19 @@ export const websiteScrapeWorkflow = workflow.define({
       return {
         success: true,
         activitiesProcessed: mergedActivities.length,
+        storageId,
+        filename,
+        jsonlContent,
         importSummary,
       };
     } else {
-      console.log("Auto-import disabled, generating JSON-L file");
-
-      const jsonlContent: string = await step.runMutation(
-        internal.importing.generateJsonL,
-        { activities: mergedActivities },
-        { name: "generate-jsonl" },
-      );
-
-      console.log(
-        `Generated JSON-L file with ${mergedActivities.length} activities`,
-      );
+      console.log("Auto-import disabled, JSONL file stored for review");
 
       return {
         success: true,
         activitiesProcessed: mergedActivities.length,
+        storageId,
+        filename,
         jsonlContent,
       };
     }
@@ -237,6 +272,7 @@ export const startWebsiteScrapeWorkflow = mutation({
         ),
         isPublic: v.optional(v.boolean()),
         tagsHint: v.optional(v.array(v.string())),
+        useMockScrape: v.optional(v.boolean()),
       }),
     ),
   },

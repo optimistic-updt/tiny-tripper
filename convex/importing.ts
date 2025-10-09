@@ -1,4 +1,4 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
@@ -114,5 +114,33 @@ export const generateJsonL = internalMutation({
 
     // Join with newlines
     return jsonLines.join("\n");
+  },
+});
+
+/**
+ * Store JSONL content to Convex storage
+ * Returns the storage ID of the uploaded file
+ */
+export const storeJsonL = internalAction({
+  args: {
+    jsonlContent: v.string(),
+    runId: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ storageId: string; filename: string }> => {
+    // Create a blob from the JSONL content
+    const blob = new Blob([args.jsonlContent], { type: "application/jsonl" });
+
+    // Generate filename with run ID
+    const filename = `scrape-${args.runId}.jsonl`;
+
+    // Store the file
+    const storageId = await ctx.storage.store(blob);
+
+    console.log(`Stored JSONL file: ${filename} (Storage ID: ${storageId})`);
+
+    return { storageId, filename };
   },
 });
