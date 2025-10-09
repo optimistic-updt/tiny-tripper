@@ -42,7 +42,24 @@ full-stack app using:
 - https://melbournewithsiri.com.au/events-whats-on-in-melbourne/
 - mamaKnows
 
-## Scraping pipeline
+## Scraping
+
+### Use cases
+
+#### Bulk import
+
+- suppose to run once
+- heavy handed
+
+#### Change Tracking
+
+Track specific page for the latest up to date information
+
+- firecrawl - changeTracking
+
+#### Instagram
+
+- apify?
 
 ### Scraper
 

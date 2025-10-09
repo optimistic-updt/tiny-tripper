@@ -1,4 +1,5 @@
 import { internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
 import { env } from "./env";
@@ -190,5 +191,56 @@ export const pollEmbeddingBatch = internalAction({
     );
 
     return embeddingMap;
+  },
+});
+
+/**
+ * Poll a batch job until complete, with automatic retries
+ * This runs outside the workflow to handle polling delays using setTimeout
+ */
+export const pollEmbeddingBatchUntilComplete = internalAction({
+  args: {
+    batchId: v.string(),
+    maxAttempts: v.optional(v.number()),
+    delayMs: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<Record<number, number[]>> => {
+    const maxAttempts = args.maxAttempts ?? 120;
+    const delayMs = args.delayMs ?? 60 * 1000;
+
+    console.log(
+      `Starting polling for batch ${args.batchId} (max ${maxAttempts} attempts, ${delayMs}ms delay)`,
+    );
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const result = await ctx.runAction(internal.embeddings.pollEmbeddingBatch, {
+        batchId: args.batchId,
+      });
+
+      if (result !== null) {
+        console.log(
+          `Batch complete after ${attempt + 1} attempts: ${Object.keys(result).length} embeddings`,
+        );
+        return result;
+      }
+
+      console.log(
+        `Batch not ready (attempt ${attempt + 1}/${maxAttempts}), waiting ${delayMs}ms...`,
+      );
+
+      // Wait before next poll (only if not the last attempt)
+      if (attempt < maxAttempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
+    // Timed out - return empty map
+    console.warn(
+      `Batch ${args.batchId} timed out after ${maxAttempts} attempts. Returning empty embeddings.`,
+    );
+    return {};
   },
 });

@@ -33,11 +33,13 @@ export const websiteScrapeWorkflow = workflow.define({
       v.object({
         maxDepth: v.optional(v.number()),
         maxPages: v.optional(v.number()),
+        maxExtractions: v.optional(v.number()),
         autoImport: v.optional(v.boolean()),
         urgencyDefault: v.optional(
           v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
         ),
         isPublic: v.optional(v.boolean()),
+        tagsHint: v.optional(v.array(v.string())),
       }),
     ),
   },
@@ -55,9 +57,11 @@ export const websiteScrapeWorkflow = workflow.define({
     const config = {
       maxDepth: args.config?.maxDepth,
       maxPages: args.config?.maxPages || 150,
-      autoImport: args.config?.autoImport ?? true,
+      maxExtractions: args.config?.maxExtractions || 150,
+      autoImport: args.config?.autoImport ?? false,
       urgencyDefault: args.config?.urgencyDefault || "medium",
       isPublic: args.config?.isPublic ?? true,
+      tagsHint: args.config?.tagsHint || undefined,
     };
 
     console.log(`Starting scrape workflow for URL: ${args.url}`);
@@ -70,6 +74,8 @@ export const websiteScrapeWorkflow = workflow.define({
         url: args.url,
         maxDepth: config.maxDepth,
         maxPages: config.maxPages,
+        maxExtractions: config.maxExtractions,
+        tagsHint: config.tagsHint,
       },
       { name: "scrape-website" },
     );
@@ -146,43 +152,19 @@ export const websiteScrapeWorkflow = workflow.define({
     // Step 3d: Poll embedding batch until complete
     console.log(`Polling embedding batch: ${embeddingBatchId}`);
 
-    let embeddingsMap: Record<number, number[]> | null = null;
-    let attempts = 0;
-    const maxAttempts = 120; // 2 hours max (120 attempts × 1 minute)
+    const embeddingsMap: Record<number, number[]> = await step.runAction(
+      internal.embeddings.pollEmbeddingBatchUntilComplete,
+      {
+        batchId: embeddingBatchId,
+        maxAttempts: 120, // 2 hours max (120 attempts × 1 minute)
+        delayMs: 60 * 1000, // 1 minute between polls
+      },
+      { name: "poll-embeddings-until-complete" },
+    );
 
-    while (attempts < maxAttempts && !embeddingsMap) {
-      const result: Record<number, number[]> | null = await step.runAction(
-        internal.embeddings.pollEmbeddingBatch,
-        { batchId: embeddingBatchId },
-        { name: `poll-embeddings-${attempts}` },
-      );
-
-      if (result !== null) {
-        embeddingsMap = result;
-        console.log(
-          `Embeddings ready: ${Object.keys(embeddingsMap).length} embeddings generated`,
-        );
-        break;
-      }
-
-      attempts++;
-      console.log(
-        `Embedding batch not ready yet (attempt ${attempts}/${maxAttempts})`,
-      );
-
-      // Wait 1 minute before next poll
-      // TODO: Implement durable sleep when workflow component supports it
-      if (attempts < maxAttempts && !embeddingsMap) {
-        await new Promise((resolve) => setTimeout(resolve, 60 * 1000));
-      }
-    }
-
-    if (!embeddingsMap) {
-      console.warn(
-        `Embedding batch timed out after ${maxAttempts} attempts. Continuing without embeddings.`,
-      );
-      embeddingsMap = {};
-    }
+    console.log(
+      `Embeddings ready: ${Object.keys(embeddingsMap).length} embeddings generated`,
+    );
 
     // Step 4: Merge all data
     const mergedActivities: Array<
@@ -248,11 +230,13 @@ export const startWebsiteScrapeWorkflow = mutation({
       v.object({
         maxDepth: v.optional(v.number()),
         maxPages: v.optional(v.number()),
+        maxExtractions: v.optional(v.number()),
         autoImport: v.optional(v.boolean()),
         urgencyDefault: v.optional(
           v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
         ),
         isPublic: v.optional(v.boolean()),
+        tagsHint: v.optional(v.array(v.string())),
       }),
     ),
   },
