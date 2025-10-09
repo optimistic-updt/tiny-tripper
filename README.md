@@ -15,6 +15,7 @@ Parents in Melbourne
 ## TODO
 
 - [ ] Try importing a set of activities from Mama Knows North.
+- [ ] process image before upload (size and size)
 - [ ] PUSH TO PEOPLE
 - [ ] Filters [Home or away] [indoor or outdoor].
 - [ ] better search
@@ -42,4 +43,27 @@ full-stack app using:
 - https://melbournewithsiri.com.au/events-whats-on-in-melbourne/
 - mamaKnows
 
-## Scraping pipeline
+## Scraping
+
+### Use cases
+
+#### Bulk import
+
+- suppose to run once
+- heavy handed
+
+#### Change Tracking
+
+Track specific page for the latest up to date information
+
+- firecrawl - changeTracking
+
+#### Instagram
+
+- apify?
+
+### Scraper
+
+- [FIRECRAWL](https://www.firecrawl.dev/pricing) - can pay as you go or monthly - TBD 200activities might be $14
+- [ScraperAPI](https://www.scraperapi.com/pricing/) - $49/month
+- [apify](https://apify.com/store/categories?sortBy=popularity) for insta + other stuff

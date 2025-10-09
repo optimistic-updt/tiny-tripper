@@ -21,6 +21,7 @@ export default defineSchema({
         country_code: v.optional(v.string()), // ISO 3166-1 alpha-2
       }),
     ),
+    startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
     userId: v.optional(v.string()),
