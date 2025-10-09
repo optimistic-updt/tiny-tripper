@@ -15,6 +15,7 @@ Parents in Melbourne
 ## TODO
 
 - [ ] Try importing a set of activities from Mama Knows North.
+- [ ] process image before upload (size and size)
 - [ ] PUSH TO PEOPLE
 - [ ] Filters [Home or away] [indoor or outdoor].
 - [ ] better search

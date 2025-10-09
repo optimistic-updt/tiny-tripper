@@ -40,7 +40,6 @@ export const websiteScrapeWorkflow = workflow.define({
         urgencyDefault: v.optional(
           v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
         ),
-        isPublic: v.optional(v.boolean()),
         tagsHint: v.optional(v.array(v.string())),
         useMockScrape: v.optional(v.boolean()),
       }),
@@ -65,7 +64,7 @@ export const websiteScrapeWorkflow = workflow.define({
       maxExtractions: args.config?.maxExtractions || 150,
       autoImport: args.config?.autoImport ?? false,
       urgencyDefault: args.config?.urgencyDefault || "medium",
-      isPublic: args.config?.isPublic ?? true,
+      isPublic: true,
       tagsHint: args.config?.tagsHint || undefined,
       useMockScrape: args.config?.useMockScrape ?? false,
     };
@@ -270,7 +269,6 @@ export const startWebsiteScrapeWorkflow = mutation({
         urgencyDefault: v.optional(
           v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
         ),
-        isPublic: v.optional(v.boolean()),
         tagsHint: v.optional(v.array(v.string())),
         useMockScrape: v.optional(v.boolean()),
       }),
