@@ -159,13 +159,18 @@ export const websiteScrapeWorkflow = workflow.define({
     console.log(`Polling embedding batch: ${embeddingBatchId}`);
 
     const embeddingsMap: Record<number, number[]> = await step.runAction(
-      internal.embeddings.pollEmbeddingBatchUntilComplete,
+      internal.embeddings.pollEmbeddingBatch,
       {
         batchId: embeddingBatchId,
-        maxAttempts: 120, // 2 hours max (120 attempts × 1 minute)
-        delayMs: 60 * 1000, // 1 minute between polls
       },
-      { name: "poll-embeddings-until-complete" },
+      {
+        name: "poll-embeddings",
+        retry: {
+          maxAttempts: 150, // Allow up to ~24h of retries with exponential backoff
+          initialBackoffMs: 60000, // Start with 1 minute between retries
+          base: 1.5, // Gradual exponential backoff (1m, 1.5m, 2.25m, 3.4m, 5m, 7.6m, ...)
+        },
+      },
     );
 
     console.log(
