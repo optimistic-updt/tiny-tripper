@@ -15,7 +15,11 @@ Parents in Melbourne
 ## TODO
 
 - [ ] Try importing a set of activities from Mama Knows North.
+  - fix 1mb size limit per steps
 - [ ] process image before upload (size and size)
+  - 1200 x 630 for large
+  - 400 x 267 for small
+  - 3:2 ratio
 - [ ] PUSH TO PEOPLE
 - [ ] Filters [Home or away] [indoor or outdoor].
 - [ ] better search
@@ -67,3 +71,10 @@ Track specific page for the latest up to date information
 - [FIRECRAWL](https://www.firecrawl.dev/pricing) - can pay as you go or monthly - TBD 200activities might be $14
 - [ScraperAPI](https://www.scraperapi.com/pricing/) - $49/month
 - [apify](https://apify.com/store/categories?sortBy=popularity) for insta + other stuff
+- [fetchfox]()
+  USD2.5 for 300 extraction
+
+ai $2.0285
+network $0.0537
+fetchfox $0.3685
+total $2.4507

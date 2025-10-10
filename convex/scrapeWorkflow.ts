@@ -15,6 +15,23 @@ interface ImportSummary {
   errors: string[];
 }
 
+// TODO - key files:
+// - scraping.ts - scrape website, return raw activities
+// the batch embeddings
+// the final jsonl
+// ---
+// the geocode map
+// the image map
+
+// TODO
+// Steps can only take in and return a total of 1 MiB of data within a single workflow execution. If you run into journal size limits, you can work around this by storing results in the DB from your step functions and passing IDs around within the the workflow.
+// the batch embeddings can return much more than 1 MiB of data if there are many activities
+// the final jsonl can be much more than 1 MiB of data if there are many activities
+// so we should store those in the DB and pass around IDs
+// www.convex.dev/components/workflow#limitations
+// also doc can't be more than 1mb
+//docs.convex.dev/production/state/limits#documents
+
 /**
  * Website Scraping ETL Pipeline Workflow
  *
