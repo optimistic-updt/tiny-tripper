@@ -3,6 +3,8 @@ import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
 import { env } from "./env";
 import OpenAI from "openai";
+import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 interface BatchRequest {
   custom_id: string;
@@ -195,6 +197,31 @@ export const pollEmbeddingBatch = internalAction({
     );
 
     return embeddingMap;
+  },
+});
+
+/**
+ * Poll embedding batch and store the result map in storage
+ * Returns the storage ID of the stored embedding map
+ */
+export const pollEmbeddingBatchAndStore = internalAction({
+  args: {
+    batchId: v.string(),
+    workflowId: v.string(),
+  },
+  handler: async (ctx, args): Promise<Id<"_storage">> => {
+    // Poll for embeddings
+    const embeddingMap = await ctx.runAction(internal.embeddings.pollEmbeddingBatch, {
+      batchId: args.batchId,
+    });
+
+    // Store the map in storage
+    const storageId = await ctx.runAction(internal.storageHelpers.storeJsonData, {
+      data: embeddingMap,
+      filename: `workflow-${args.workflowId}-embeddings.json`,
+    });
+
+    return storageId;
   },
 });
 

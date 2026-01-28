@@ -1,10 +1,10 @@
-import { WorkflowManager } from "@convex-dev/workflow";
+import { WorkflowManager, vWorkflowId } from "@convex-dev/workflow";
 import { components, internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { RawActivity } from "./scraping";
 import type { StandardizedActivity } from "./formatting";
-import type { Doc } from "./_generated/dataModel";
-import { mutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { mutation, internalMutation } from "./_generated/server";
 
 const workflow = new WorkflowManager(components.workflow);
 
@@ -36,14 +36,15 @@ interface ImportSummary {
  * Website Scraping ETL Pipeline Workflow
  *
  * Orchestrates the entire pipeline:
- * 1. Scrape website for activity data
- * 2. Standardize and format data
- * 3. Process images, geocode addresses, generate embeddings (parallel)
- * 4. Poll embedding batch until complete (with durable sleep)
- * 5. Merge all data
- * 6. Generate JSONL content
- * 7. Store JSONL file to storage
+ * 1. Create workflow metadata record
+ * 2. Scrape website for activity data and store in storage
+ * 3. Standardize and format data
+ * 4. Process images, geocode addresses, generate embeddings (parallel) - all stored in storage
+ * 5. Poll embedding batch until complete (with durable sleep) - stored in storage
+ * 6. Merge all data from storage
+ * 7. Generate and store JSONL file
  * 8. Conditionally import to database if autoImport is enabled
+ * 9. Update workflow metadata with results
  */
 export const websiteScrapeWorkflow = workflow.define({
   args: {
@@ -69,9 +70,8 @@ export const websiteScrapeWorkflow = workflow.define({
     success: boolean;
     activitiesProcessed: number;
     message?: string;
-    storageId?: string;
+    storageId?: Id<"_storage">;
     filename?: string;
-    jsonlContent?: string;
     importSummary?: ImportSummary;
   }> => {
     // Apply config defaults
@@ -86,12 +86,25 @@ export const websiteScrapeWorkflow = workflow.define({
       useMockScrape: args.config?.useMockScrape ?? false,
     };
 
-    console.log(`Starting scrape workflow for URL: ${args.url}`);
+    const workflowId = step.workflowId;
+
+    console.log(`Starting scrape workflow ${workflowId} for URL: ${args.url}`);
     console.log(`Config:`, config);
 
-    // Step 1: Scrape website
-    const rawActivities: RawActivity[] = await step.runAction(
-      internal.scraping.scrapeWebsite,
+    // Step 0: Create workflow metadata record
+    await step.runMutation(
+      internal.workflowMetadata.createWorkflowRecord,
+      {
+        workflowId,
+        url: args.url,
+        config: args.config || {},
+      },
+      { name: "create-workflow-record" },
+    );
+
+    // Step 1: Scrape website and store raw activities
+    const rawActivitiesStorageId: Id<"_storage"> = await step.runAction(
+      internal.scraping.scrapeWebsiteAndStore,
       {
         url: args.url,
         maxDepth: config.maxDepth,
@@ -99,14 +112,45 @@ export const websiteScrapeWorkflow = workflow.define({
         maxExtractions: config.maxExtractions,
         tagsHint: config.tagsHint,
         useMockScrape: config.useMockScrape,
+        workflowId,
       },
-      { name: "scrape-website" },
+      { name: "scrape-website-and-store" },
     );
+
+    // Update workflow record with raw activities storage ID
+    await step.runMutation(
+      internal.workflowMetadata.updateWorkflowFile,
+      {
+        workflowId,
+        fileType: "rawActivities",
+        storageId: rawActivitiesStorageId,
+      },
+      { name: "update-raw-activities-storage" },
+    );
+
+    // Retrieve raw activities from storage for processing
+    const rawActivitiesData = await step.runAction(
+      internal.storageHelpers.retrieveJsonData,
+      { storageId: rawActivitiesStorageId },
+      { name: "retrieve-raw-activities" },
+    );
+
+    const rawActivities = rawActivitiesData as RawActivity[];
 
     console.log(`Scraped ${rawActivities.length} raw activities`);
 
     if (rawActivities.length === 0) {
       console.log("No activities found, workflow complete");
+      
+      await step.runMutation(
+        internal.workflowMetadata.completeWorkflow,
+        {
+          workflowId,
+          activitiesProcessed: 0,
+        },
+        { name: "mark-workflow-complete" },
+      );
+
       return {
         success: true,
         activitiesProcessed: 0,
@@ -131,33 +175,26 @@ export const websiteScrapeWorkflow = workflow.define({
     console.log(`Standardized ${standardizedActivities.length} activities`);
 
     // Step 3: Parallel processing (images, geocoding, embeddings)
+    // All results stored in storage, returns storage IDs
     console.log("Starting parallel processing: images, geocoding, embeddings");
 
-    const [imagesMap, geocodedMap, embeddingBatchId]: [
-      Record<number, string>,
-      Record<
-        number,
-        {
-          latitude: number;
-          longitude: number;
-          placeId: string;
-          formattedAddress: string;
-        }
-      >,
+    const [imagesStorageId, geocodedStorageId, embeddingBatchId]: [
+      Id<"_storage">,
+      Id<"_storage">,
       string,
     ] = await Promise.all([
-      // 3a: Process images
+      // 3a: Process images and store
       step.runAction(
-        internal.imageProcessing.processImages,
-        { activities: standardizedActivities },
-        { name: "process-images" },
+        internal.imageProcessing.processImagesAndStore,
+        { activities: standardizedActivities, workflowId },
+        { name: "process-images-and-store" },
       ),
 
-      // 3b: Geocode addresses
+      // 3b: Geocode addresses and store
       step.runAction(
-        internal.geocoding.geocodeAddresses,
-        { activities: standardizedActivities },
-        { name: "geocode-addresses" },
+        internal.geocoding.geocodeAddressesAndStore,
+        { activities: standardizedActivities, workflowId },
+        { name: "geocode-addresses-and-store" },
       ),
 
       // 3c: Submit embedding batch
@@ -168,47 +205,93 @@ export const websiteScrapeWorkflow = workflow.define({
       ),
     ]);
 
+    // Update workflow record with intermediate storage IDs
+    await Promise.all([
+      step.runMutation(
+        internal.workflowMetadata.updateWorkflowFile,
+        {
+          workflowId,
+          fileType: "imagesMap",
+          storageId: imagesStorageId,
+        },
+        { name: "update-images-storage" },
+      ),
+      step.runMutation(
+        internal.workflowMetadata.updateWorkflowFile,
+        {
+          workflowId,
+          fileType: "geocodedMap",
+          storageId: geocodedStorageId,
+        },
+        { name: "update-geocoded-storage" },
+      ),
+    ]);
+
     console.log(
-      `Parallel processing complete. Images: ${Object.keys(imagesMap).length}, Geocoded: ${Object.keys(geocodedMap).length}, Batch ID: ${embeddingBatchId}`,
+      `Parallel processing complete. Batch ID: ${embeddingBatchId}`,
     );
 
-    // Step 3d: Poll embedding batch until complete
+    // Step 3d: Poll embedding batch until complete and store
     console.log(`Polling embedding batch: ${embeddingBatchId}`);
 
-    const embeddingsMap: Record<number, number[]> = await step.runAction(
-      internal.embeddings.pollEmbeddingBatch,
+    const embeddingsStorageId: Id<"_storage"> = await step.runAction(
+      internal.embeddings.pollEmbeddingBatchAndStore,
       {
         batchId: embeddingBatchId,
+        workflowId,
       },
       {
-        name: "poll-embeddings",
+        name: "poll-embeddings-and-store",
         retry: {
-          maxAttempts: 150, // Allow up to ~24h of retries with exponential backoff
-          initialBackoffMs: 60000, // Start with 1 minute between retries
-          base: 1.5, // Gradual exponential backoff (1m, 1.5m, 2.25m, 3.4m, 5m, 7.6m, ...)
+          maxAttempts: 150,
+          initialBackoffMs: 60000,
+          base: 1.5,
         },
       },
     );
 
-    console.log(
-      `Embeddings ready: ${Object.keys(embeddingsMap).length} embeddings generated`,
-    );
-
-    // Step 4: Merge all data
-    const mergedActivities: Array<
-      Omit<Doc<"activities">, "_id" | "_creationTime">
-    > = await step.runMutation(
-      internal.formatting.mergeActivityData,
+    // Update workflow record with embeddings storage ID
+    await step.runMutation(
+      internal.workflowMetadata.updateWorkflowFile,
       {
-        activities: standardizedActivities,
-        images: imagesMap,
-        geocoded: geocodedMap,
-        embeddings: embeddingsMap,
+        workflowId,
+        fileType: "embeddingsMap",
+        storageId: embeddingsStorageId,
       },
-      { name: "merge-activity-data" },
+      { name: "update-embeddings-storage" },
     );
 
-    console.log(`Merged ${mergedActivities.length} complete activities`);
+    console.log(`Embeddings ready and stored`);
+
+    // Step 4: Merge all data from storage and store result
+    const mergeResult: { storageId: Id<"_storage">; count: number } =
+      await step.runAction(
+        internal.formatting.mergeActivityDataAndStore,
+        {
+          activities: standardizedActivities,
+          imagesStorageId,
+          geocodedStorageId,
+          embeddingsStorageId,
+          workflowId,
+        },
+        { name: "merge-and-store-activity-data" },
+      );
+
+    const mergedActivitiesStorageId = mergeResult.storageId;
+    const activitiesCount = mergeResult.count;
+
+    console.log(`Merged ${activitiesCount} complete activities`);
+
+    // Update workflow record with merged activities storage ID
+    await step.runMutation(
+      internal.workflowMetadata.updateWorkflowFile,
+      {
+        workflowId,
+        fileType: "mergedActivities",
+        storageId: mergedActivitiesStorageId,
+      },
+      { name: "update-merged-activities-storage" },
+    );
 
     // Step 5a: Generate a unique run ID for this scrape
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -218,64 +301,68 @@ export const websiteScrapeWorkflow = workflow.define({
       .slice(0, 30);
     const runId = `${timestamp}-${urlSlug}`;
 
-    // Step 5b: Generate JSONL content
-    console.log("Generating JSONL file");
+    // Step 5b: Generate and store JSONL file directly
+    console.log("Generating and storing JSONL file");
 
-    const jsonlContent: string = await step.runMutation(
-      internal.importing.generateJsonL,
-      { activities: mergedActivities },
-      { name: "generate-jsonl" },
-    );
-
-    console.log(
-      `Generated JSONL content with ${mergedActivities.length} activities`,
-    );
-
-    // Step 5c: Store JSONL file to storage
-    console.log("Storing JSONL file to storage");
-
-    const { storageId, filename }: { storageId: string; filename: string } =
+    const { storageId, filename }: { storageId: Id<"_storage">; filename: string } =
       await step.runAction(
-        internal.importing.storeJsonL,
-        { jsonlContent, runId },
-        { name: "store-jsonl" },
+        internal.importing.generateAndStoreJsonL,
+        { mergedActivitiesStorageId, runId },
+        { name: "generate-and-store-jsonl" },
       );
+
+    // Update workflow record with final JSONL storage ID
+    await step.runMutation(
+      internal.workflowMetadata.updateWorkflowFile,
+      {
+        workflowId,
+        fileType: "finalJsonl",
+        storageId,
+      },
+      { name: "update-jsonl-storage" },
+    );
 
     console.log(`Stored JSONL file: ${filename} (Storage ID: ${storageId})`);
 
     // Step 5d: Conditionally import to database if autoImport is enabled
+    let importSummary: ImportSummary | undefined;
+
     if (config.autoImport) {
       console.log("Auto-import enabled, importing to database");
 
-      const importSummary: ImportSummary = await step.runMutation(
-        internal.importing.bulkImportActivities,
-        { activities: mergedActivities },
-        { name: "bulk-import-activities" },
+      importSummary = await step.runAction(
+        internal.importing.bulkImportActivitiesFromStorage,
+        { mergedActivitiesStorageId },
+        { name: "bulk-import-from-storage" },
       );
 
-      console.log(
-        `Import complete: ${importSummary.imported} imported, ${importSummary.skipped} skipped, ${importSummary.failed} failed`,
-      );
-
-      return {
-        success: true,
-        activitiesProcessed: mergedActivities.length,
-        storageId,
-        filename,
-        jsonlContent,
-        importSummary,
-      };
+      if (importSummary) {
+        console.log(
+          `Import complete: ${importSummary.imported} imported, ${importSummary.skipped} skipped, ${importSummary.failed} failed`,
+        );
+      }
     } else {
       console.log("Auto-import disabled, JSONL file stored for review");
-
-      return {
-        success: true,
-        activitiesProcessed: mergedActivities.length,
-        storageId,
-        filename,
-        jsonlContent,
-      };
     }
+
+    // Step 6: Mark workflow as complete
+    await step.runMutation(
+      internal.workflowMetadata.completeWorkflow,
+      {
+        workflowId,
+        activitiesProcessed: activitiesCount,
+        importSummary,
+      },
+      { name: "mark-workflow-complete" },
+    );
+
+    return {
+      success: true,
+      activitiesProcessed: activitiesCount,
+      storageId,
+      filename,
+      importSummary,
+    };
   },
 });
 
@@ -296,11 +383,81 @@ export const startWebsiteScrapeWorkflow = mutation({
       }),
     ),
   },
-  handler: async (ctx, args) => {
-    await workflow.start(
+  handler: async (ctx, args): Promise<string> => {
+    const workflowId: string = await workflow.start(
       ctx,
       internal.scrapeWorkflow.websiteScrapeWorkflow,
       args,
+      {
+        onComplete: internal.scrapeWorkflow.handleWorkflowComplete,
+        context: { autoImport: args.config?.autoImport ?? false },
+      },
     );
+
+    return workflowId;
+  },
+});
+
+/**
+ * Handle workflow completion - cleanup files if autoImport is true
+ */
+export const handleWorkflowComplete = internalMutation({
+  args: {
+    workflowId: vWorkflowId,
+    result: v.any(), // RunResult type from workpool
+    context: v.any(), // Our custom context
+  },
+  handler: async (ctx, args) => {
+    console.log(
+      `Workflow ${args.workflowId} completed with status: ${args.result.kind}`,
+    );
+
+    // Extract our context
+    const context = args.context as { autoImport: boolean };
+
+    if (args.result.kind === "success") {
+      // If autoImport is true and workflow succeeded, clean up storage files
+      if (context.autoImport) {
+        console.log(
+          `Auto-import was enabled, scheduling cleanup for workflow ${args.workflowId}`,
+        );
+
+        await ctx.scheduler.runAfter(
+          0,
+          internal.workflowMetadata.cleanupWorkflowFiles,
+          { workflowId: args.workflowId as string },
+        );
+      } else {
+        console.log(
+          `Auto-import was disabled, keeping storage files for workflow ${args.workflowId}`,
+        );
+      }
+    } else if (args.result.kind === "error") {
+      console.error(
+        `Workflow ${args.workflowId} failed with error: ${args.result.error}`,
+      );
+
+      // Mark workflow as failed
+      await ctx.scheduler.runAfter(
+        0,
+        internal.workflowMetadata.failWorkflow,
+        {
+          workflowId: args.workflowId as string,
+          error: args.result.error || "Unknown error",
+        },
+      );
+    } else if (args.result.kind === "canceled") {
+      console.log(`Workflow ${args.workflowId} was canceled`);
+
+      // Mark workflow as failed
+      await ctx.scheduler.runAfter(
+        0,
+        internal.workflowMetadata.failWorkflow,
+        {
+          workflowId: args.workflowId as string,
+          error: "Workflow canceled",
+        },
+      );
+    }
   },
 });

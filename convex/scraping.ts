@@ -3,6 +3,8 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { env } from "./env";
+import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 // /**
 //  * Extraction prompt for LLM-based activity data extraction from web pages
@@ -5930,5 +5932,40 @@ export const scrapeWebsite = internalAction({
         `FetchFox scraping failed: ${fetchfoxResult.reason instanceof Error ? fetchfoxResult.reason.message : "Unknown error"}`,
       );
     }
+  },
+});
+
+/**
+ * Scrape a website and store the raw activities in storage
+ * Returns the storage ID
+ */
+export const scrapeWebsiteAndStore = internalAction({
+  args: {
+    url: v.string(),
+    maxDepth: v.optional(v.number()),
+    maxPages: v.optional(v.number()),
+    maxExtractions: v.optional(v.number()),
+    tagsHint: v.optional(v.array(v.string())),
+    useMockScrape: v.optional(v.boolean()),
+    workflowId: v.string(),
+  },
+  handler: async (ctx, args): Promise<Id<"_storage">> => {
+    // Scrape the website
+    const rawActivities = await ctx.runAction(internal.scraping.scrapeWebsite, {
+      url: args.url,
+      maxDepth: args.maxDepth,
+      maxPages: args.maxPages,
+      maxExtractions: args.maxExtractions,
+      tagsHint: args.tagsHint,
+      useMockScrape: args.useMockScrape,
+    });
+
+    // Store the raw activities in storage
+    const storageId = await ctx.runAction(internal.storageHelpers.storeJsonData, {
+      data: rawActivities,
+      filename: `workflow-${args.workflowId}-raw-activities.json`,
+    });
+
+    return storageId;
   },
 });

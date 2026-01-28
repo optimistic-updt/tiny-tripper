@@ -211,20 +211,26 @@ export const searchActivities = action({
   },
 });
 
-// getRecommendation prioritizes
-// activities based on:
+// Seeded pseudo-random number generator (mulberry32)
+// Returns a function that generates random numbers between 0 and 1
+function createSeededRandom(seed: number): () => number {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-// 1. Urgency Level (100/50/10
-// points)
-// 2. End Date within 2 weeks
-// (80+ points, bonus for sooner
-// deadlines)
-// 3. User's own activities (30
-// points)
-// 4. Activities with location
-// (10 points)
-// 5. Activities with tags (5
-// points)
+// getRecommendation prioritizes activities based on:
+// 1. Urgency Level (100/50/10 points)
+// 2. End Date within 2 weeks (80+ points, bonus for sooner deadlines)
+// 3. User's own activities (30 points)
+// 4. Activities with location (10 points)
+// 5. Activities with tags (5 points)
+//
+// When randomSeed is provided, adds ±20 points of jitter to each score
+// for variety while maintaining general priority ordering.
 export const getRecommendation = query({
   args: {
     excludeIds: v.optional(v.array(v.id("activities"))),
@@ -234,6 +240,7 @@ export const getRecommendation = query({
         rainproof: v.boolean(),
       }),
     ),
+    randomSeed: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -329,8 +336,21 @@ export const getRecommendation = query({
         }
 
         return { ...activity, score };
-      })
-      .sort((a, b) => b.score - a.score);
+      });
+
+    // Apply random jitter to scores if seed is provided
+    const JITTER_MAGNITUDE = 20; // ±20 points
+    if (args.randomSeed !== undefined) {
+      const random = createSeededRandom(args.randomSeed);
+      for (const activity of scoredActivities) {
+        // Jitter between -JITTER_MAGNITUDE and +JITTER_MAGNITUDE
+        const jitter = (random() * 2 - 1) * JITTER_MAGNITUDE;
+        activity.score += jitter;
+      }
+    }
+
+    // Sort by score descending
+    scoredActivities.sort((a, b) => b.score - a.score);
 
     // Return the highest scored activity, or null if none found
     return scoredActivities.length > 0 ? scoredActivities[0] : null;

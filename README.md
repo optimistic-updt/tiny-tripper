@@ -8,18 +8,23 @@ Recommend the BEST activity to do at a given point in time - in Melbourne
 
 Parents in Melbourne
 
+## Offer
+
+## Sales
+
+## Success Metrics
+
+- They "activate" on a activity
+- They come back a certain percentage of time depending on how often they have they kid
+- they sign up
+
 ## Time Spent
 
 50 hrs ++++++
 
 ## TODO
 
-- [ ] Try importing a set of activities from Mama Knows North.
-  - fix 1mb size limit per steps
-- [ ] process image before upload (size and size)
-  - 1200 x 630 for large
-  - 400 x 267 for small
-  - 3:2 ratio
+- [ ] import all the activities
 - [ ] PUSH TO PEOPLE
 - [ ] Filters [Home or away] [indoor or outdoor].
 - [ ] better search
@@ -31,6 +36,10 @@ Parents in Melbourne
 - [ ] ping the weather to better recommend
 - [ ] cleverly suggest tags when creating a activity
 - [ ] comes with option tailored to your preferences
+- [ ] process image before upload (size and size)
+  - 1200 x 630 for large
+  - 400 x 267 for small
+  - 3:2 ratio
 
 ## Tech
 
@@ -78,3 +87,7 @@ ai $2.0285
 network $0.0537
 fetchfox $0.3685
 total $2.4507
+
+?
+add files as part of the storage tab
+have access to workflow id inside the workflow

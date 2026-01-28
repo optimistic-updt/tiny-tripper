@@ -4,6 +4,8 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
 import { env } from "./env";
+import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 interface GeocodeResult {
   latitude: number;
@@ -168,5 +170,30 @@ export const geocodeAddresses = internalAction({
     );
 
     return geocodedMap;
+  },
+});
+
+/**
+ * Geocode addresses and store the result map in storage
+ * Returns the storage ID of the stored geocoded map
+ */
+export const geocodeAddressesAndStore = internalAction({
+  args: {
+    activities: v.array(v.any()),
+    workflowId: v.string(),
+  },
+  handler: async (ctx, args): Promise<Id<"_storage">> => {
+    // Geocode addresses
+    const geocodedMap = await ctx.runAction(internal.geocoding.geocodeAddresses, {
+      activities: args.activities,
+    });
+
+    // Store the map in storage
+    const storageId = await ctx.runAction(internal.storageHelpers.storeJsonData, {
+      data: geocodedMap,
+      filename: `workflow-${args.workflowId}-geocoded.json`,
+    });
+
+    return storageId;
   },
 });

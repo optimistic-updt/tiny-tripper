@@ -1,7 +1,7 @@
 import { internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 
 interface ImportSummary {
   imported: number;
@@ -41,7 +41,7 @@ export const bulkImportActivities = internalMutation({
         // Check for duplicate (name + location match)
         const existing = await ctx.db
           .query("activities")
-          .filter((q) => q.eq(q.field("name"), activity.name))
+          .withIndex("by_name", (q) => q.eq("name", activity.name))
           .first();
 
         if (
@@ -129,7 +129,7 @@ export const storeJsonL = internalAction({
   handler: async (
     ctx,
     args,
-  ): Promise<{ storageId: string; filename: string }> => {
+  ): Promise<{ storageId: Id<"_storage">; filename: string }> => {
     // Create a blob from the JSONL content
     const blob = new Blob([args.jsonlContent], { type: "application/jsonl" });
 
@@ -137,10 +137,116 @@ export const storeJsonL = internalAction({
     const filename = `scrape-${args.runId}.jsonl`;
 
     // Store the file
-    const storageId = await ctx.storage.store(blob);
+    const storageId: Id<"_storage"> = await ctx.storage.store(blob);
 
     console.log(`Stored JSONL file: ${filename} (Storage ID: ${storageId})`);
 
     return { storageId, filename };
+  },
+});
+
+/**
+ * Generate JSONL from activities in storage and store directly
+ * Returns only the storage ID (avoids passing large JSONL through workflow)
+ */
+export const generateAndStoreJsonL = internalAction({
+  args: {
+    mergedActivitiesStorageId: v.id("_storage"),
+    runId: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ storageId: Id<"_storage">; filename: string }> => {
+    // Retrieve activities from storage
+    const activitiesData = await ctx.runAction(
+      internal.storageHelpers.retrieveJsonData,
+      { storageId: args.mergedActivitiesStorageId },
+    );
+    const activities = activitiesData as Omit<
+      Doc<"activities">,
+      "_id" | "_creationTime"
+    >[];
+
+    // Generate JSONL content
+    if (activities.length === 0) {
+      // Store empty file
+      const blob = new Blob([""], { type: "application/jsonl" });
+      const filename = `scrape-${args.runId}.jsonl`;
+      const storageId = await ctx.storage.store(blob);
+      console.log(`Stored empty JSONL file: ${filename} (Storage ID: ${storageId})`);
+      return { storageId, filename };
+    }
+
+    // Convert each activity to a JSON line
+    const jsonLines = activities.map((activity) => JSON.stringify(activity));
+    const jsonlContent = jsonLines.join("\n");
+
+    // Store directly to storage
+    const blob = new Blob([jsonlContent], { type: "application/jsonl" });
+    const filename = `scrape-${args.runId}.jsonl`;
+    const storageId: Id<"_storage"> = await ctx.storage.store(blob);
+
+    console.log(`Stored JSONL file: ${filename} (Storage ID: ${storageId}, ${activities.length} activities)`);
+
+    return { storageId, filename };
+  },
+});
+
+/**
+ * Generate JSONL from activities stored in storage
+ * Retrieves activities from storage, generates JSONL, returns content
+ */
+export const generateJsonLFromStorage = internalAction({
+  args: {
+    mergedActivitiesStorageId: v.id("_storage"),
+  },
+  handler: async (ctx, args): Promise<string> => {
+    // Retrieve activities from storage
+    const activitiesData = await ctx.runAction(
+      internal.storageHelpers.retrieveJsonData,
+      { storageId: args.mergedActivitiesStorageId },
+    );
+    const activities = activitiesData as Omit<
+      Doc<"activities">,
+      "_id" | "_creationTime"
+    >[];
+
+    // Generate JSONL using existing mutation
+    const jsonlContent = await ctx.runMutation(
+      internal.importing.generateJsonL,
+      { activities },
+    );
+
+    return jsonlContent;
+  },
+});
+
+/**
+ * Bulk import activities from storage
+ * Retrieves activities from storage and imports them
+ */
+export const bulkImportActivitiesFromStorage = internalAction({
+  args: {
+    mergedActivitiesStorageId: v.id("_storage"),
+  },
+  handler: async (ctx, args): Promise<ImportSummary> => {
+    // Retrieve activities from storage
+    const activitiesData = await ctx.runAction(
+      internal.storageHelpers.retrieveJsonData,
+      { storageId: args.mergedActivitiesStorageId },
+    );
+    const activities = activitiesData as Omit<
+      Doc<"activities">,
+      "_id" | "_creationTime"
+    >[];
+
+    // Import using existing mutation
+    const summary = await ctx.runMutation(
+      internal.importing.bulkImportActivities,
+      { activities },
+    );
+
+    return summary;
   },
 });

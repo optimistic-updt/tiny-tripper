@@ -15,9 +15,12 @@ import type * as formatting from "../formatting.js";
 import type * as geocoding from "../geocoding.js";
 import type * as imageProcessing from "../imageProcessing.js";
 import type * as importing from "../importing.js";
+import type * as quiz from "../quiz.js";
 import type * as scrapeWorkflow from "../scrapeWorkflow.js";
 import type * as scraping from "../scraping.js";
+import type * as storageHelpers from "../storageHelpers.js";
 import type * as tags from "../tags.js";
+import type * as workflowMetadata from "../workflowMetadata.js";
 
 import type {
   ApiFromModules,
@@ -41,9 +44,12 @@ declare const fullApi: ApiFromModules<{
   geocoding: typeof geocoding;
   imageProcessing: typeof imageProcessing;
   importing: typeof importing;
+  quiz: typeof quiz;
   scrapeWorkflow: typeof scrapeWorkflow;
   scraping: typeof scraping;
+  storageHelpers: typeof storageHelpers;
   tags: typeof tags;
+  workflowMetadata: typeof workflowMetadata;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

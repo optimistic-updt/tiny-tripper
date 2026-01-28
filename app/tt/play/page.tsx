@@ -31,6 +31,9 @@ export default function PlayPage() {
     atHome: false,
     rainproof: false,
   });
+  const [randomSeed, setRandomSeed] = useState(() =>
+    Math.floor(Math.random() * 1000000),
+  );
 
   // Load filters from sessionStorage on mount
   useEffect(() => {
@@ -51,11 +54,14 @@ export default function PlayPage() {
     setRecommendationHistory([]);
     setCurrentIndex(-1);
     setExcludeIds([]);
+    // Generate new random seed
+    setRandomSeed(Math.floor(Math.random() * 1000000));
   }, [filters]);
 
   const recommendation = useQuery(api.activities.getRecommendation, {
     excludeIds: excludeIds,
     filters: filters,
+    randomSeed: randomSeed,
   });
 
   const handlePlayClick = () => {
@@ -70,6 +76,9 @@ export default function PlayPage() {
 
       // Add current recommendation to exclude list for next query
       setExcludeIds((prev) => [...prev, recommendation._id]);
+
+      // Generate new random seed for next recommendation
+      setRandomSeed(Math.floor(Math.random() * 1000000));
     }
   };
 

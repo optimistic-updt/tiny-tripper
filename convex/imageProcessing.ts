@@ -1,6 +1,8 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
+import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 /**
  * Download an image from a URL and return the blob
@@ -73,5 +75,30 @@ export const processImages = internalAction({
     );
 
     return imageMap;
+  },
+});
+
+/**
+ * Process images and store the result map in storage
+ * Returns the storage ID of the stored image map
+ */
+export const processImagesAndStore = internalAction({
+  args: {
+    activities: v.array(v.any()),
+    workflowId: v.string(),
+  },
+  handler: async (ctx, args): Promise<Id<"_storage">> => {
+    // Process images
+    const imageMap = await ctx.runAction(internal.imageProcessing.processImages, {
+      activities: args.activities,
+    });
+
+    // Store the map in storage
+    const storageId = await ctx.runAction(internal.storageHelpers.storeJsonData, {
+      data: imageMap,
+      filename: `workflow-${args.workflowId}-images.json`,
+    });
+
+    return storageId;
   },
 });

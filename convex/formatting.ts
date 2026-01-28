@@ -1,7 +1,8 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { RawActivity } from "./scraping";
 import type { Doc, Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 export interface StandardizedActivity {
   name: string;
@@ -216,5 +217,55 @@ export const mergeActivityData = internalMutation({
     );
 
     return merged;
+  },
+});
+
+/**
+ * Merge activity data from storage IDs and store the result
+ * Returns storage ID and count (to avoid passing large data through workflow)
+ */
+export const mergeActivityDataAndStore = internalAction({
+  args: {
+    activities: v.array(v.any()),
+    imagesStorageId: v.id("_storage"),
+    geocodedStorageId: v.id("_storage"),
+    embeddingsStorageId: v.id("_storage"),
+    workflowId: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ storageId: Id<"_storage">; count: number }> => {
+    // Fetch data from storage
+    const [images, geocoded, embeddings] = await Promise.all([
+      ctx.runAction(internal.storageHelpers.retrieveJsonData, {
+        storageId: args.imagesStorageId,
+      }),
+      ctx.runAction(internal.storageHelpers.retrieveJsonData, {
+        storageId: args.geocodedStorageId,
+      }),
+      ctx.runAction(internal.storageHelpers.retrieveJsonData, {
+        storageId: args.embeddingsStorageId,
+      }),
+    ]);
+
+    // Merge using the existing mutation
+    const merged = await ctx.runMutation(internal.formatting.mergeActivityData, {
+      activities: args.activities,
+      images,
+      geocoded,
+      embeddings,
+    });
+
+    // Store merged activities to storage
+    const storageId = await ctx.runAction(
+      internal.storageHelpers.storeJsonData,
+      {
+        data: merged,
+        filename: `workflow-${args.workflowId}-merged.json`,
+      },
+    );
+
+    return { storageId, count: merged.length };
   },
 });

@@ -1,66 +1,243 @@
-import { Button, Heading, Text } from "@radix-ui/themes";
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  Button,
+  Heading,
+  Text,
+  Container,
+  Flex,
+  Card,
+  Box,
+  Badge,
+} from "@radix-ui/themes";
 import Link from "next/link";
+import { usePostHog } from "posthog-js/react";
 import { ROUTES } from "./routes";
+import { Brain, Clock, Zap } from "lucide-react";
 
 export default function Home() {
-  return (
-    <>
-      <main className="">
-        <section className="">
-          {/* <img
-            src="/images/max-goncharov-iN6FWLaWqKs-unsplash.jpg"
-            src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2830&q=80&blend=111827&sat=-100&exp=15&blend-mode=multiply"
-            alt="your toddler"
-            className="absolute inset-0 -z-10 h-full w-full object-cover bg-blend-multiply"
-          /> */}
-          {/* <div
-            className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
-            aria-hidden="true"
-          >
-            <div
-              className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-              style={{
-                clipPath:
-                  "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-              }}
-            />
-          </div> */}
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="text-center">
-              <Heading as="h1">Remove the Decision Fatigue 😩</Heading>
-              <Text>
-                {/* Your toddler&apos;s next adventure, just a tap away!  */}
-                Tiny Tripper recommends engaging, age-appropriate activities to
-                do with your kid(s).
-              </Text>
-              <div className="mt-10 flex items-center justify-center gap-x-6">
-                <Link href={ROUTES.play}>
-                  <Button size="3">Try it Now</Button>
-                </Link>
+  const posthog = usePostHog();
+  const [headlineVariant, setHeadlineVariant] = useState<
+    "frustration" | "results"
+  >("frustration");
 
-                {/* <a
-                  href="#what-is-it"
-                  className="text-sm font-semibold leading-6 text-white"
-                >
-                  Live demo <span aria-hidden="true">→</span>
-                </a> */}
-              </div>
-            </div>
-          </div>
-          <div
-            className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"
-            aria-hidden="true"
-          >
-            <div
-              className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
-              style={{
-                clipPath:
-                  "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-              }}
-            />
-          </div>
-        </section>
-      </main>
-    </>
+  useEffect(() => {
+    // Get A/B test variant from PostHog
+    if (posthog) {
+      const variant = posthog.getFeatureFlag("landing-headline-test");
+      if (variant === "results") {
+        setHeadlineVariant("results");
+      }
+      // Track page view with variant
+      posthog.capture("landing_page_viewed", {
+        headline_variant: variant || "frustration",
+      });
+    }
+  }, [posthog]);
+
+  const headlines = {
+    frustration: {
+      title:
+        "Feeling frustrated that weekends slip away without quality family time?",
+      subtitle:
+        "Answer 15 questions to discover why decision fatigue is stealing your adventures—and what to do about it.",
+    },
+    results: {
+      title: "Ready to spend less time planning and more time playing?",
+      subtitle:
+        "Answer 15 questions to unlock personalized activity recommendations that match your family's energy.",
+    },
+  };
+
+  const currentHeadline = headlines[headlineVariant];
+
+  return (
+    <main className="min-h-screen">
+      {/* Hero Section */}
+      <section className="px-6 pt-16 pb-12 lg:px-8">
+        <Container size="3">
+          <Flex direction="column" align="center" gap="6">
+            <Badge size="2" color="orange">
+              For Melbourne Parents
+            </Badge>
+
+            <Heading as="h1" size="8" align="center" className="max-w-3xl">
+              {currentHeadline.title}
+            </Heading>
+
+            <Text size="4" align="center" color="gray" className="max-w-2xl">
+              {currentHeadline.subtitle}
+            </Text>
+
+            {/* Dual CTA */}
+            <Flex gap="4" mt="4" wrap="wrap" justify="center">
+              <Link href="/quiz">
+                <Button size="4" variant="solid">
+                  Start the Quiz
+                </Button>
+              </Link>
+              <Link href={ROUTES.play}>
+                <Button size="4" variant="outline">
+                  Try it Now
+                </Button>
+              </Link>
+            </Flex>
+
+            {/* Micro-copy assurances */}
+            <Flex gap="4" wrap="wrap" justify="center">
+              <Text size="2" color="gray">
+                Takes 3 minutes
+              </Text>
+              <Text size="2" color="gray">
+                Completely Free
+              </Text>
+              <Text size="2" color="gray">
+                Immediate Recommendations
+              </Text>
+            </Flex>
+          </Flex>
+        </Container>
+      </section>
+
+      {/* Value Proposition - 3 Pain Points */}
+      <section className="px-6 py-16 lg:px-8 bg-[var(--gray-2)]">
+        <Container size="3">
+          <Heading as="h2" size="6" align="center" mb="6">
+            We&apos;ll help you overcome:
+          </Heading>
+
+          <Flex gap="4" wrap="wrap" justify="center">
+            <Card size="3" className="max-w-xs">
+              <Flex direction="column" align="center" gap="3" p="4">
+                <Box className="p-3 bg-orange-100 rounded-full">
+                  <Brain className="w-6 h-6 text-orange-600" />
+                </Box>
+                <Heading as="h3" size="4">
+                  Decision Paralysis
+                </Heading>
+                <Text size="2" align="center" color="gray">
+                  Too many options leading to analysis paralysis—and ending up
+                  doing nothing.
+                </Text>
+              </Flex>
+            </Card>
+
+            <Card size="3" className="max-w-xs">
+              <Flex direction="column" align="center" gap="3" p="4">
+                <Box className="p-3 bg-orange-100 rounded-full">
+                  <Clock className="w-6 h-6 text-orange-600" />
+                </Box>
+                <Heading as="h3" size="4">
+                  Planning Overload
+                </Heading>
+                <Text size="2" align="center" color="gray">
+                  Spending more time researching activities than actually
+                  enjoying them.
+                </Text>
+              </Flex>
+            </Card>
+
+            <Card size="3" className="max-w-xs">
+              <Flex direction="column" align="center" gap="3" p="4">
+                <Box className="p-3 bg-orange-100 rounded-full">
+                  <Zap className="w-6 h-6 text-orange-600" />
+                </Box>
+                <Heading as="h3" size="4">
+                  Repetitive Routines
+                </Heading>
+                <Text size="2" align="center" color="gray">
+                  Defaulting to the same activities because trying new things
+                  feels exhausting.
+                </Text>
+              </Flex>
+            </Card>
+          </Flex>
+        </Container>
+      </section>
+
+      {/* Social Proof / Stats Section */}
+      <section className="px-6 py-16 lg:px-8">
+        <Container size="2">
+          <Card size="3">
+            <Flex direction="column" align="center" gap="4" p="6">
+              <Heading as="h2" size="5" align="center">
+                You&apos;re not alone
+              </Heading>
+
+              <Flex gap="8" wrap="wrap" justify="center">
+                <Flex direction="column" align="center">
+                  <Text size="8" weight="bold" color="orange">
+                    73%
+                  </Text>
+                  <Text size="2" color="gray" align="center">
+                    of parents feel overwhelmed
+                    <br />
+                    by activity choices
+                  </Text>
+                </Flex>
+
+                <Flex direction="column" align="center">
+                  <Text size="8" weight="bold" color="orange">
+                    2.5hrs
+                  </Text>
+                  <Text size="2" color="gray" align="center">
+                    average weekly time
+                    <br />
+                    spent planning activities
+                  </Text>
+                </Flex>
+
+                <Flex direction="column" align="center">
+                  <Text size="8" weight="bold" color="orange">
+                    4/10
+                  </Text>
+                  <Text size="2" color="gray" align="center">
+                    planned outings get
+                    <br />
+                    cancelled due to indecision
+                  </Text>
+                </Flex>
+              </Flex>
+            </Flex>
+          </Card>
+        </Container>
+      </section>
+
+      {/* Final CTA */}
+      <section className="px-6 py-16 lg:px-8">
+        <Container size="2">
+          <Flex direction="column" align="center" gap="6">
+            <Heading as="h2" size="6" align="center">
+              Ready to reclaim your weekends?
+            </Heading>
+
+            <Link href="/quiz">
+              <Button size="4" variant="solid">
+                Start the Quiz
+              </Button>
+            </Link>
+          </Flex>
+        </Container>
+      </section>
+
+      {/* Footer */}
+      <footer className="px-6 py-8 lg:px-8 border-t">
+        <Container size="3">
+          <Flex justify="between" align="center" wrap="wrap" gap="4">
+            <Text size="2" color="gray">
+              © 2026 Tiny Tripper
+            </Text>
+            <Flex gap="4">
+              <Link href={ROUTES.privacyPolicy}>
+                <Text size="2" color="gray">
+                  Privacy Policy
+                </Text>
+              </Link>
+            </Flex>
+          </Flex>
+        </Container>
+      </footer>
+    </main>
   );
 }
