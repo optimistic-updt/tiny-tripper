@@ -20,6 +20,7 @@ import type * as scrapeWorkflow from "../scrapeWorkflow.js";
 import type * as scraping from "../scraping.js";
 import type * as storageHelpers from "../storageHelpers.js";
 import type * as tags from "../tags.js";
+import type * as userActivityPreferences from "../userActivityPreferences.js";
 import type * as workflowMetadata from "../workflowMetadata.js";
 
 import type {
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   scraping: typeof scraping;
   storageHelpers: typeof storageHelpers;
   tags: typeof tags;
+  userActivityPreferences: typeof userActivityPreferences;
   workflowMetadata: typeof workflowMetadata;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

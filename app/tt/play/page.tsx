@@ -3,17 +3,20 @@
 // import { Drawer } from "vaul";
 import { useState, useEffect } from "react";
 import {
+  Badge,
   Button,
   Heading,
   Text,
   Card,
-  Badge,
   Spinner,
   Box,
   VisuallyHidden,
   Flex,
+  DropdownMenu,
+  IconButton,
 } from "@radix-ui/themes";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { EyeOff } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 
@@ -22,6 +25,7 @@ import styles from "./3d_button.module.css";
 type Recommendation = Doc<"activities"> & { score: number };
 
 export default function PlayPage() {
+  const { isAuthenticated } = useConvexAuth();
   const [recommendationHistory, setRecommendationHistory] = useState<
     Recommendation[]
   >([]);
@@ -64,6 +68,10 @@ export default function PlayPage() {
     randomSeed: randomSeed,
   });
 
+  // Mutations for user preferences
+  const setHidden = useMutation(api.userActivityPreferences.setActivityHidden);
+  const setUrgency = useMutation(api.userActivityPreferences.setActivityUrgency);
+
   const handlePlayClick = () => {
     if (recommendation) {
       // Add current recommendation to history
@@ -90,6 +98,12 @@ export default function PlayPage() {
 
   const currentActivity = recommendationHistory[currentIndex] || null;
   const canGoBack = currentIndex > 0;
+
+  // Get user's preference for current activity
+  const userPreference = useQuery(
+    api.userActivityPreferences.getActivityUserPreference,
+    currentActivity ? { activityId: currentActivity._id } : "skip",
+  );
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return null;
@@ -151,13 +165,95 @@ export default function PlayPage() {
                 <Heading as="h2" size="6" className="flex-1">
                   {currentActivity.name}
                 </Heading>
-                <Badge
-                  size="2"
-                  color={getUrgencyColor(currentActivity.urgency)}
-                  className="ml-4"
-                >
-                  {currentActivity.urgency.toUpperCase()}
-                </Badge>
+                {isAuthenticated ? (
+                  <Flex gap="2" align="center">
+                    {/* Priority Dropdown */}
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger>
+                        <Button
+                          size="2"
+                          variant="soft"
+                          color={getUrgencyColor(
+                            userPreference?.urgencyOverride ?? currentActivity.urgency,
+                          )}
+                        >
+                          {(
+                            userPreference?.urgencyOverride ?? currentActivity.urgency
+                          ).toUpperCase()}
+                          <DropdownMenu.TriggerIcon />
+                        </Button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        <DropdownMenu.Item
+                          onSelect={() =>
+                            setUrgency({
+                              activityId: currentActivity._id,
+                              urgency: "high",
+                            })
+                          }
+                        >
+                          High
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onSelect={() =>
+                            setUrgency({
+                              activityId: currentActivity._id,
+                              urgency: "medium",
+                            })
+                          }
+                        >
+                          Medium
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onSelect={() =>
+                            setUrgency({
+                              activityId: currentActivity._id,
+                              urgency: "low",
+                            })
+                          }
+                        >
+                          Low
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Separator />
+                        <DropdownMenu.Item
+                          onSelect={() =>
+                            setUrgency({
+                              activityId: currentActivity._id,
+                              urgency: null,
+                            })
+                          }
+                        >
+                          Reset to default ({currentActivity.urgency})
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+
+                    {/* Hide Button */}
+                    <IconButton
+                      size="2"
+                      variant="ghost"
+                      color="gray"
+                      onClick={() => {
+                        setHidden({
+                          activityId: currentActivity._id,
+                          hidden: true,
+                        });
+                        handlePlayClick();
+                      }}
+                      title="Hide this activity"
+                    >
+                      <EyeOff size={16} />
+                    </IconButton>
+                  </Flex>
+                ) : (
+                  <Badge
+                    size="2"
+                    color={getUrgencyColor(currentActivity.urgency)}
+                    className="ml-4"
+                  >
+                    {currentActivity.urgency.toUpperCase()}
+                  </Badge>
+                )}
               </div>
 
               {currentActivity.description && (

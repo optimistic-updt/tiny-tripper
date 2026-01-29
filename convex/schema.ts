@@ -122,4 +122,17 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_completedAt", ["completedAt"])
     .index("by_userId", ["userId"]),
+
+  userActivityPreferences: defineTable({
+    userId: v.string(), // Clerk user ID
+    activityId: v.id("activities"),
+    hidden: v.optional(v.boolean()), // Never show this activity
+    urgencyOverride: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_and_activityId", ["userId", "activityId"]),
 });

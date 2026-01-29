@@ -296,6 +296,18 @@ export const getRecommendation = query({
     const now = new Date();
     const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
+    // Fetch user preferences for filtering and scoring
+    const preferences = identity
+      ? await ctx.db
+          .query("userActivityPreferences")
+          .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
+          .collect()
+      : [];
+
+    const prefsMap = new Map(
+      preferences.map((p) => [p.activityId.toString(), p]),
+    );
+
     // Get all available activities
     const allActivities = await ctx.db
       .query("activities")
@@ -323,6 +335,12 @@ export const getRecommendation = query({
           }
         }
 
+        // Filter out activities hidden by the user
+        const pref = prefsMap.get(activity._id.toString());
+        if (pref?.hidden) {
+          return false;
+        }
+
         // Apply tag filters (AND logic)
         if (args.filters) {
           const { atHome, rainproof } = args.filters;
@@ -344,10 +362,13 @@ export const getRecommendation = query({
       .map((activity) => {
         let score = 0;
 
-        // Priority 1: Urgency (highest weight)
-        if (activity.urgency === "high") {
+        // Priority 1: Urgency (highest weight) - use user's override if set
+        const pref = prefsMap.get(activity._id.toString());
+        const effectiveUrgency = pref?.urgencyOverride ?? activity.urgency;
+
+        if (effectiveUrgency === "high") {
           score += 100;
-        } else if (activity.urgency === "medium") {
+        } else if (effectiveUrgency === "medium") {
           score += 50;
         } else {
           score += 10;
