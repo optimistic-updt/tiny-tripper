@@ -44,6 +44,7 @@ The codebase already has the foundational infrastructure for private activities:
 #### Clerk Configuration
 
 **File**: `convex/auth.config.ts`
+
 ```typescript
 export default {
   providers: [
@@ -56,21 +57,25 @@ export default {
 ```
 
 **File**: `middleware.ts`
+
 - Uses `clerkMiddleware` from `@clerk/nextjs/server`
 - Currently only protects the `/server` route
 - Other routes are accessible without authentication
 
 **File**: `components/ConvexClientProvider.tsx`
+
 - Wraps app with `ConvexProviderWithClerk`
 - Passes Clerk's `useAuth` hook to bridge authentication states
 
 **File**: `app/layout.tsx:41`
+
 - `<ClerkProvider dynamic>` wraps the entire application
 - The `dynamic` prop enables lazy loading of Clerk
 
 #### User Identity in Convex
 
 User identity is accessed via `ctx.auth.getUserIdentity()` which returns:
+
 - `identity.subject` - The unique user ID (stored as `userId` in database)
 - Returns `null` if user is not authenticated
 
@@ -83,29 +88,33 @@ activities: defineTable({
   name: v.string(),
   description: v.optional(v.string()),
   urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-  location: v.optional(v.object({
-    name: v.string(),
-    placeId: v.optional(v.string()),
-    formattedAddress: v.string(),
-    latitude: v.optional(v.number()),
-    longitude: v.optional(v.number()),
-    // ... address components
-  })),
+  location: v.optional(
+    v.object({
+      name: v.string(),
+      placeId: v.optional(v.string()),
+      formattedAddress: v.string(),
+      latitude: v.optional(v.number()),
+      longitude: v.optional(v.number()),
+      // ... address components
+    }),
+  ),
   startDate: v.optional(v.string()),
   endDate: v.optional(v.string()),
-  isPublic: v.optional(v.boolean()),      // ← Privacy field
-  userId: v.optional(v.string()),          // ← Owner field
+  isPublic: v.optional(v.boolean()), // ← Privacy field
+  userId: v.optional(v.string()), // ← Owner field
   tags: v.optional(v.array(v.string())),
   embedding: v.optional(v.array(v.float64())),
   imageId: v.optional(v.id("_storage")),
-})
+});
 ```
 
 **Key fields for privacy**:
+
 - `isPublic` - Controls visibility (optional boolean)
 - `userId` - Links activity to creator (optional string)
 
 **Indexes**:
+
 - `by_name` - Standard index on name field
 - `by_embedding` - Vector index for semantic search
 - **Note**: No index exists on `userId` or `isPublic`
@@ -124,8 +133,8 @@ const activityId = await ctx.db.insert("activities", {
   location: args.location ?? undefined,
   startDate: args.startDate ?? undefined,
   endDate: args.endDate ?? undefined,
-  isPublic: args.isPublic ?? false,   // ← Defaults to false
-  userId: identity?.subject,          // ← Captures user if authenticated
+  isPublic: args.isPublic ?? false, // ← Defaults to false
+  userId: identity?.subject, // ← Captures user if authenticated
   tags: args.tags ?? undefined,
   embedding: args.embedding ?? undefined,
   imageId: args.imageId ?? undefined,
@@ -133,6 +142,7 @@ const activityId = await ctx.db.insert("activities", {
 ```
 
 **Default behavior**:
+
 - `isPublic` defaults to `false` in the backend mutation
 - `userId` is set to `identity?.subject` (undefined if not logged in)
 
@@ -144,7 +154,7 @@ const form = useForm<z.infer<typeof activitySchema>>({
   defaultValues: {
     name: "",
     description: "",
-    isPublic: true,    // ← Frontend defaults to true
+    isPublic: true, // ← Frontend defaults to true
     // ...
   },
 });
@@ -177,6 +187,7 @@ export const listActivities = query({
 ```
 
 **Privacy logic**: Shows activities where:
+
 - `isPublic === true` (anyone can see), OR
 - `userId === identity?.subject` (owner can always see their own)
 
@@ -211,22 +222,28 @@ Owner's activities receive a +30 point scoring bonus in recommendations.
 ### Frontend Pages
 
 **File**: `app/tt/activities/page.tsx:24`
+
 - Calls `listActivities` query
 - Displays all visible activities (user's own + public)
 
 **File**: `app/tt/play/page.tsx:61-65`
+
 - Calls `getRecommendation` query
 - Manages exclusion list and filters
 
 **File**: `app/tt/create/page.tsx`
+
 - Has `isPublic` switch in form (lines 168-182)
 - Currently defaults to true
 
 ### Login UI
 
 **File**: `app/tt/layout.tsx:13`
+
 ```typescript
-{/* <UserButton /> */}
+{
+  /* <UserButton /> */
+}
 ```
 
 The Clerk `UserButton` component is commented out. There is no visible login/signup UI in the current app.
@@ -234,6 +251,7 @@ The Clerk `UserButton` component is commented out. There is no visible login/sig
 ### Scraping/Import Defaults
 
 **File**: `convex/formatting.ts:112`
+
 ```typescript
 isPublic: activity.isPublic ?? defaultActivityValues?.isPublic ?? true,
 ```
@@ -295,12 +313,12 @@ identity?.subject → userId string | undefined
 
 ### Query Access Patterns
 
-| Query | Checks Auth | Filters by Privacy | Notes |
-|-------|-------------|-------------------|-------|
-| `listActivities` | Yes | Yes | Shows public + user's own |
-| `getRecommendation` | Yes | Yes | Shows public + user's own |
-| `getActivity` | No | No | Direct access by ID |
-| `searchActivities` | No | No | Uses getActivity internally |
+| Query               | Checks Auth | Filters by Privacy | Notes                       |
+| ------------------- | ----------- | ------------------ | --------------------------- |
+| `listActivities`    | Yes         | Yes                | Shows public + user's own   |
+| `getRecommendation` | Yes         | Yes                | Shows public + user's own   |
+| `getActivity`       | No          | No                 | Direct access by ID         |
+| `searchActivities`  | No          | No                 | Uses getActivity internally |
 
 ## Historical Context (from thoughts/)
 
@@ -310,9 +328,13 @@ identity?.subject → userId string | undefined
 ## Open Questions
 
 1. **Should `getActivity` require permission checks?** - Currently anyone with an activity ID can access it, even if `isPublic: false`.
+   this should have permissions check
 
 2. **Should `searchActivities` respect privacy?** - Vector search returns activities without checking visibility.
+   all good for now
 
 3. **Should there be an index on `userId`?** - Currently no index exists for efficiently querying user's activities.
+   probably
 
 4. **What should happen to anonymous activities?** - Activities created without login have `userId: null` and could become "orphaned" private activities if `isPublic` is later set to false.
+   make sure that all activities default as `isPublic = true`

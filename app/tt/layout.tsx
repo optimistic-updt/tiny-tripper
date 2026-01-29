@@ -1,5 +1,6 @@
-import { Container, Flex, Heading } from "@radix-ui/themes";
+import { Container, Flex, Heading, Button } from "@radix-ui/themes";
 import { Navbar } from "./Navbar";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +11,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             Tiny Tripper
           </Heading>
 
-          {/* <UserButton /> */}
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <Button variant="soft" size="2">
+                Sign In
+              </Button>
+            </SignInButton>
+          </SignedOut>
         </Flex>
       </Container>
 

@@ -174,8 +174,57 @@ export const getActivity = query({
   args: {
     id: v.id("activities"),
   },
+  returns: v.union(
+    v.object({
+      _id: v.id("activities"),
+      _creationTime: v.number(),
+      name: v.string(),
+      description: v.optional(v.string()),
+      urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+      location: v.optional(
+        v.object({
+          name: v.string(),
+          placeId: v.optional(v.string()),
+          formattedAddress: v.string(),
+          latitude: v.optional(v.number()),
+          longitude: v.optional(v.number()),
+          street_address: v.optional(v.string()),
+          city: v.optional(v.string()),
+          state_province: v.optional(v.string()),
+          postal_code: v.optional(v.string()),
+          country_code: v.optional(v.string()),
+        }),
+      ),
+      startDate: v.optional(v.string()),
+      endDate: v.optional(v.string()),
+      isPublic: v.optional(v.boolean()),
+      userId: v.optional(v.string()),
+      tags: v.optional(v.array(v.string())),
+      embedding: v.optional(v.array(v.float64())),
+      imageId: v.optional(v.id("_storage")),
+    }),
+    v.null(),
+  ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const activity = await ctx.db.get(args.id);
+
+    if (!activity) {
+      return null;
+    }
+
+    // Public activities are accessible to everyone
+    if (activity.isPublic === true) {
+      return activity;
+    }
+
+    // Private activities only accessible to owner
+    const identity = await ctx.auth.getUserIdentity();
+    if (activity.userId && activity.userId === identity?.subject) {
+      return activity;
+    }
+
+    // Not authorized to view this activity
+    return null;
   },
 });
 

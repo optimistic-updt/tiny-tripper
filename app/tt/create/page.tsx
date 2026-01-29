@@ -13,10 +13,11 @@ import {
   Switch,
   Callout,
   Heading,
-  // SegmentedControl,
+  SegmentedControl,
   Box,
 } from "@radix-ui/themes";
-import { CheckCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, AlertTriangle, Lock } from "lucide-react";
+import { useAuth, SignInButton } from "@clerk/nextjs";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 import TagCombobox from "@/components/TagCombobox";
 import ImageUpload, { type ImageUploadHandle } from "@/components/ImageUpload";
@@ -50,6 +51,7 @@ type ActivityFormData = {
 
 export default function CreateActivityPage() {
   const createActivity = useAction(api.activities.createActivity);
+  const { isSignedIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{
     type: "success" | "error";
@@ -101,10 +103,10 @@ export default function CreateActivityPage() {
       await createActivity({
         name: data.name,
         description: data.description || undefined,
-        urgency: data.urgency || undefined,
+        urgency: isSignedIn ? (data.urgency || "medium") : undefined,
         location: data.location || undefined,
         endDate: data.endDate || undefined,
-        isPublic: data.isPublic || false,
+        isPublic: isSignedIn ? (data.isPublic ?? true) : true,
         tags: tags.length > 0 ? tags : undefined,
         imageId: data.imageId || undefined,
       });
@@ -164,20 +166,30 @@ export default function CreateActivityPage() {
               )}
             </div>
 
-            <div>
+            <div style={{ opacity: !isSignedIn ? 0.5 : 1 }}>
               <Flex align="center" gap="3">
+                {!isSignedIn && <Lock size={14} className="text-gray-400" />}
                 <Switch
-                  checked={true}
+                  checked={isPublic}
                   onCheckedChange={(checked) => setValue("isPublic", checked)}
+                  disabled={!isSignedIn}
                 />
-                <Text size="2" weight="medium">
+                <Text size="2" weight="medium" color={!isSignedIn ? "gray" : undefined}>
                   {isPublic ? "Public Activity" : "Private Activity"}
                 </Text>
               </Flex>
               <Text size="1" color="gray" mt="1">
-                {isPublic
-                  ? "Anyone can see this activity (currently only Public)"
-                  : "Only you can see this activity"}
+                {!isSignedIn ? (
+                  <SignInButton mode="modal">
+                    <span className="cursor-pointer underline hover:no-underline">
+                      Sign in to create private activities that only you can see
+                    </span>
+                  </SignInButton>
+                ) : isPublic ? (
+                  <>Anyone can see this activity</>
+                ) : (
+                  <>Only you can see this activity</>
+                )}
               </Text>
             </div>
 
@@ -193,25 +205,37 @@ export default function CreateActivityPage() {
               />
             </div>
 
-            {/* will Come back */}
-            {/* <Flex direction={"column"}>
-              <Text size="2" weight="medium" mb="2">
-                Urgency
-              </Text>
+            <Flex direction={"column"} style={{ opacity: !isSignedIn ? 0.5 : 1 }}>
+              <Flex align="center" gap="2" mb="2">
+                {!isSignedIn && <Lock size={14} className="text-gray-400" />}
+                <Text size="2" weight="medium">
+                  Urgency
+                </Text>
+              </Flex>
               <SegmentedControl.Root
                 defaultValue="medium"
                 size="3"
+                disabled={!isSignedIn}
                 onValueChange={(value: "low" | "medium" | "high") =>
                   setValue("urgency", value)
                 }
               >
                 <SegmentedControl.Item value="low">Low</SegmentedControl.Item>
-                <SegmentedControl.Item value="medium">
-                  Medium
-                </SegmentedControl.Item>
+                <SegmentedControl.Item value="medium">Medium</SegmentedControl.Item>
                 <SegmentedControl.Item value="high">High</SegmentedControl.Item>
               </SegmentedControl.Root>
-            </Flex> */}
+              <Text size="1" color="gray" mt="1">
+                {!isSignedIn ? (
+                  <SignInButton mode="modal">
+                    <span className="cursor-pointer underline hover:no-underline">
+                      Sign in to set urgency and prioritize your activities
+                    </span>
+                  </SignInButton>
+                ) : (
+                  <>Higher urgency activities appear first in recommendations</>
+                )}
+              </Text>
+            </Flex>
 
             <div>
               <Text size="2" weight="medium" mb="2">
