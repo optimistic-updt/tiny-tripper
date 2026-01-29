@@ -4,7 +4,7 @@
 // import { ROUTES } from "@/app/routes";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Flex } from "@radix-ui/themes";
+import { Flex, Spinner, Text } from "@radix-ui/themes";
 // import { SearchBar } from "@/components/SearchBar";
 
 // type Activity = {
@@ -25,12 +25,20 @@ export default function ActivitiesPage() {
   // const [searchResults, setSearchResults] = useState<Activity[]>([]);
   // const [isSearchActive, setIsSearchActive] = useState(false);
 
-  const isLoading = false;
-
   // const handleSearchResults = (results: Activity[]) => {
   //   setSearchResults(results);
   //   setIsSearchActive(results.length > 0 || true); // Show search results even if empty to indicate search was performed
   // };
+
+  // Show loading state while data is being fetched
+  if (allActivities === undefined) {
+    return (
+      <Flex direction="column" align="center" justify="center" height="100%" p="5">
+        <Spinner size="3" />
+        <Text size="4" color="gray" mt="4">Loading activities...</Text>
+      </Flex>
+    );
+  }
 
   const displayActivities = allActivities;
 
@@ -45,8 +53,6 @@ export default function ActivitiesPage() {
       p="5"
     >
       {/* <SearchBar onSearchResults={handleSearchResults} /> */}
-
-      {isLoading && <p>Loading activities...</p>}
 
       {/* Activities list */}
       {displayActivities && displayActivities.length > 0 ? (
