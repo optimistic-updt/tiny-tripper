@@ -323,6 +323,14 @@ export default function PlayPage() {
                   points
                 </Text>
               </div>
+
+              {!isAuthenticated && (
+                <div className="pt-4 border-t border-gray-200">
+                  <Text size="2" color="gray">
+                    Sign in to hide activities or set your own priority levels.
+                  </Text>
+                </div>
+              )}
             </div>
           </Card>
         ) : (
