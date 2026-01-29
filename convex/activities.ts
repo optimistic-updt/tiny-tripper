@@ -290,6 +290,13 @@ export const getRecommendation = query({
       }),
     ),
     randomSeed: v.optional(v.number()),
+    userLocation: v.optional(
+      v.object({
+        latitude: v.number(),
+        longitude: v.number(),
+      }),
+    ),
+    maxDistanceMeters: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -318,6 +325,18 @@ export const getRecommendation = query({
         ),
       )
       .collect();
+
+    // Build set of nearby activity IDs if location filtering is enabled
+    let nearbyActivityIds: Set<string> | null = null;
+    if (args.userLocation && args.maxDistanceMeters) {
+      const nearby = await geospatial.queryNearest(
+        ctx,
+        args.userLocation,
+        100, // maxResults
+        args.maxDistanceMeters,
+      );
+      nearbyActivityIds = new Set(nearby.map((r) => r.key));
+    }
 
     // Filter and score activities
     const scoredActivities = allActivities
@@ -355,6 +374,11 @@ export const getRecommendation = query({
           if (rainproof && !tags.includes("rain-approved")) {
             return false;
           }
+        }
+
+        // Filter by location if enabled
+        if (nearbyActivityIds && !nearbyActivityIds.has(activity._id.toString())) {
+          return false;
         }
 
         return true;
