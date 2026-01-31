@@ -269,7 +269,20 @@ export default function PlayPage() {
                       Location
                     </Text>
                     <Text size="3">
-                      📍 {currentActivity.location.formattedAddress}
+                      📍{" "}
+                      <a
+                        href={
+                          currentActivity.location.latitude &&
+                          currentActivity.location.longitude
+                            ? `https://www.google.com/maps/search/?api=1&query=${currentActivity.location.latitude},${currentActivity.location.longitude}`
+                            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentActivity.location.formattedAddress)}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        {currentActivity.location.formattedAddress}
+                      </a>
                     </Text>
                   </div>
                 )}
