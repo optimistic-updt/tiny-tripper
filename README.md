@@ -24,15 +24,15 @@ Parents in Melbourne
 
 ## TODO
 
-- [ ] import all the activities
-- [ ] PUSH TO PEOPLE
+Need
+
 - [ ] Filters [Home or away] [indoor or outdoor].
 - [ ] better search
-- [ ] add image generation for activities
-- [ ] ask your location to give distance
-- [ ] hide activities
-- [ ] kid table with nap
 - [ ] BACKEND - hook in "what's on page" to constantly scrape information
+
+Optional
+
+- [ ] add image generation for activities
 - [ ] ping the weather to better recommend
 - [ ] cleverly suggest tags when creating a activity
 - [ ] comes with option tailored to your preferences
