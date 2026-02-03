@@ -1,8 +1,10 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../app/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
 @import "@radix-ui/colors/tomato.css";
 
 :root {
-  --background: ##fefcfa;
+  --background: #fefcfa;
   --foreground: #21201c;
   --primary: var(--tomato-9);
   /* #FF6348 */
