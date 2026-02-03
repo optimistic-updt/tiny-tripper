@@ -52,6 +52,8 @@ export default function PlayPage() {
 
   // Radius options in meters
   const RADIUS_OPTIONS = [
+    { value: 2000, label: "2 km" },
+    { value: 3000, label: "3 km" },
     { value: 5000, label: "5 km" },
     { value: 10000, label: "10 km" },
     { value: 25000, label: "25 km" },
