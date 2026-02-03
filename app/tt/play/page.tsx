@@ -14,9 +14,11 @@ import {
   Flex,
   DropdownMenu,
   IconButton,
+  Switch,
+  Select,
 } from "@radix-ui/themes";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
-import { EyeOff } from "lucide-react";
+import { EyeOff, MapPin } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 
@@ -38,6 +40,26 @@ export default function PlayPage() {
   const [randomSeed, setRandomSeed] = useState(() =>
     Math.floor(Math.random() * 1000000),
   );
+
+  // Location state
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  // Radius options in meters
+  const RADIUS_OPTIONS = [
+    { value: 2000, label: "2 km" },
+    { value: 3000, label: "3 km" },
+    { value: 5000, label: "5 km" },
+    { value: 10000, label: "10 km" },
+    { value: 25000, label: "25 km" },
+    { value: 50000, label: "50 km" },
+  ];
+  const [searchRadius, setSearchRadius] = useState(25000);
 
   // Load filters from sessionStorage on mount
   useEffect(() => {
@@ -62,15 +84,63 @@ export default function PlayPage() {
     setRandomSeed(Math.floor(Math.random() * 1000000));
   }, [filters]);
 
+  // Get user location when enabled
+  useEffect(() => {
+    if (!locationEnabled) {
+      setUserLocation(null);
+      setLocationError(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation not supported");
+      return;
+    }
+
+    setLocationLoading(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setLocationLoading(false);
+      },
+      (err) => {
+        setLocationError(err.message);
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
+  }, [locationEnabled]);
+
+  // Reset recommendations when location settings change
+  useEffect(() => {
+    setRecommendationHistory([]);
+    setCurrentIndex(-1);
+    setExcludeIds([]);
+    setRandomSeed(Math.floor(Math.random() * 1000000));
+  }, [locationEnabled, userLocation, searchRadius]);
+
   const recommendation = useQuery(api.activities.getRecommendation, {
     excludeIds: excludeIds,
     filters: filters,
     randomSeed: randomSeed,
+    userLocation:
+      locationEnabled && userLocation
+        ? { latitude: userLocation.lat, longitude: userLocation.lng }
+        : undefined,
+    maxDistanceMeters:
+      locationEnabled && userLocation ? searchRadius : undefined,
   });
 
   // Mutations for user preferences
   const setHidden = useMutation(api.userActivityPreferences.setActivityHidden);
-  const setUrgency = useMutation(api.userActivityPreferences.setActivityUrgency);
+  const setUrgency = useMutation(
+    api.userActivityPreferences.setActivityUrgency,
+  );
 
   const handlePlayClick = () => {
     if (recommendation) {
@@ -174,11 +244,13 @@ export default function PlayPage() {
                           size="2"
                           variant="soft"
                           color={getUrgencyColor(
-                            userPreference?.urgencyOverride ?? currentActivity.urgency,
+                            userPreference?.urgencyOverride ??
+                              currentActivity.urgency,
                           )}
                         >
                           {(
-                            userPreference?.urgencyOverride ?? currentActivity.urgency
+                            userPreference?.urgencyOverride ??
+                            currentActivity.urgency
                           ).toUpperCase()}
                           <DropdownMenu.TriggerIcon />
                         </Button>
@@ -365,6 +437,53 @@ export default function PlayPage() {
                   Click the Play button to get your first activity
                   recommendation!
                 </Text>
+
+                {/* Location Toggle */}
+                <Flex align="center" gap="3" mt="4" justify="center">
+                  <MapPin size={20} />
+                  <Text size="3">Enable location</Text>
+                  <Switch
+                    checked={locationEnabled}
+                    onCheckedChange={setLocationEnabled}
+                  />
+                </Flex>
+
+                {locationLoading && (
+                  <Text size="2" color="gray">
+                    Getting location...
+                  </Text>
+                )}
+
+                {locationError && (
+                  <Text size="2" color="red">
+                    {locationError}
+                  </Text>
+                )}
+
+                {/* Radius Selector (shown only when location enabled and available) */}
+                {locationEnabled && userLocation && (
+                  <Flex align="center" gap="3" mt="2" justify="center">
+                    <Text size="2" color="gray">
+                      Search radius:
+                    </Text>
+                    <Select.Root
+                      value={String(searchRadius)}
+                      onValueChange={(v) => setSearchRadius(Number(v))}
+                    >
+                      <Select.Trigger />
+                      <Select.Content>
+                        {RADIUS_OPTIONS.map((opt) => (
+                          <Select.Item
+                            key={opt.value}
+                            value={String(opt.value)}
+                          >
+                            {opt.label}
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Root>
+                  </Flex>
+                )}
               </div>
             )}
           </Card>
