@@ -5961,10 +5961,13 @@ export const scrapeWebsiteAndStore = internalAction({
     });
 
     // Store the raw activities in storage
-    const storageId = await ctx.runAction(internal.storageHelpers.storeJsonData, {
-      data: rawActivities,
-      filename: `workflow-${args.workflowId}-raw-activities.json`,
-    });
+    const storageId = await ctx.runAction(
+      internal.storageHelpers.storeJsonData,
+      {
+        data: rawActivities,
+        filename: `workflow-${args.workflowId}-raw-activities.json`,
+      },
+    );
 
     return storageId;
   },
