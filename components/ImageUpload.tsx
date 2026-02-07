@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Button, Flex, Text, Box, Callout } from "@radix-ui/themes";
 import { Camera, Upload, X, AlertCircle } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
+import { compressImage } from "@/lib/compressImage";
 
 interface ImageUploadProps {
   value?: Id<"_storage">;
@@ -53,11 +54,21 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
         // Get upload URL
         const uploadUrl = await generateUploadUrl();
 
+        // Compress before uploading
+        let body: Blob = selectedImage;
+        let contentType = selectedImage.type;
+        try {
+          body = await compressImage(selectedImage);
+          contentType = "image/webp";
+        } catch (err) {
+          console.error("Image compression failed, uploading raw file:", err);
+        }
+
         // Upload file
         const result = await fetch(uploadUrl, {
           method: "POST",
-          headers: { "Content-Type": selectedImage.type },
-          body: selectedImage,
+          headers: { "Content-Type": contentType },
+          body,
         });
 
         const { storageId } = await result.json();

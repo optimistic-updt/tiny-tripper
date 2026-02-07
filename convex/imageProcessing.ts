@@ -1,8 +1,32 @@
+"use node";
+
+import sharp from "sharp";
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+
+const TARGET_WIDTH = 1200;
+const TARGET_HEIGHT = 630;
+const WEBP_QUALITY = 82;
+
+/**
+ * Compress an image blob to WebP at 1200x630 max dimensions
+ */
+async function compressImageBlob(blob: Blob): Promise<Blob> {
+  const buffer = Buffer.from(await blob.arrayBuffer());
+
+  const compressed = await sharp(buffer)
+    .resize(TARGET_WIDTH, TARGET_HEIGHT, {
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: WEBP_QUALITY })
+    .toBuffer();
+
+  return new Blob([new Uint8Array(compressed)], { type: "image/webp" });
+}
 
 /**
  * Download an image from a URL and return the blob
@@ -50,10 +74,11 @@ export const processImages = internalAction({
         console.log(`Downloading image for activity ${i}: ${activity.name}`);
         const imageBlob = await downloadImage(activity.imageURL);
 
+        const compressed = await compressImageBlob(imageBlob);
         console.log(
-          `Uploading image to storage (${imageBlob.size} bytes, ${imageBlob.type})`,
+          `Compressed: ${imageBlob.size} bytes → ${compressed.size} bytes (${Math.round((1 - compressed.size / imageBlob.size) * 100)}% reduction)`,
         );
-        const storageId = await ctx.storage.store(imageBlob);
+        const storageId = await ctx.storage.store(compressed);
 
         imageMap[i] = storageId;
         console.log(
