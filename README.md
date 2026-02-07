@@ -36,10 +36,10 @@ Optional
 - [ ] ping the weather to better recommend
 - [ ] cleverly suggest tags when creating a activity
 - [ ] comes with option tailored to your preferences
-- [ ] process image before upload (size and size)
-  - 1200 x 630 for large
-  - 400 x 267 for small
-  - 3:2 ratio
+
+
+
+
 
 ## Tech
 
