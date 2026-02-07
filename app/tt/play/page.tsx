@@ -22,8 +22,17 @@ import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { EyeOff, MapPin, SlidersHorizontal } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
-
 import styles from "./3d_button.module.css";
+
+// Radius options in meters
+const RADIUS_OPTIONS = [
+  { value: 2000, label: "2 km" },
+  { value: 3000, label: "3 km" },
+  { value: 5000, label: "5 km" },
+  { value: 10000, label: "10 km" },
+  { value: 25000, label: "25 km" },
+  { value: 50000, label: "50 km" },
+];
 
 type Recommendation = Doc<"activities"> & { score: number };
 
@@ -51,16 +60,7 @@ export default function PlayPage() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  // Radius options in meters
-  const RADIUS_OPTIONS = [
-    { value: 2000, label: "2 km" },
-    { value: 3000, label: "3 km" },
-    { value: 5000, label: "5 km" },
-    { value: 10000, label: "10 km" },
-    { value: 25000, label: "25 km" },
-    { value: 50000, label: "50 km" },
-  ];
-  const [searchRadius, setSearchRadius] = useState(25000);
+  const [searchRadius, setSearchRadius] = useState(5000);
 
   // Load filters from sessionStorage on mount
   useEffect(() => {
@@ -452,57 +452,56 @@ export default function PlayPage() {
                   Click the Play button to get your first activity
                   recommendation!
                 </Text>
-
-                {/* Location Toggle */}
-                <Flex align="center" gap="3" mt="4" justify="center">
-                  <MapPin size={20} />
-                  <Text size="3">Enable location</Text>
-                  <Switch
-                    checked={locationEnabled}
-                    onCheckedChange={setLocationEnabled}
-                  />
-                </Flex>
-
-                {locationLoading && (
-                  <Text size="2" color="gray">
-                    Getting location...
-                  </Text>
-                )}
-
-                {locationError && (
-                  <Text size="2" color="red">
-                    {locationError}
-                  </Text>
-                )}
-
-                {/* Radius Selector (shown only when location enabled and available) */}
-                {locationEnabled && userLocation && (
-                  <Flex align="center" gap="3" mt="2" justify="center">
-                    <Text size="2" color="gray">
-                      Search radius:
-                    </Text>
-                    <Select.Root
-                      value={String(searchRadius)}
-                      onValueChange={(v) => setSearchRadius(Number(v))}
-                    >
-                      <Select.Trigger />
-                      <Select.Content>
-                        {RADIUS_OPTIONS.map((opt) => (
-                          <Select.Item
-                            key={opt.value}
-                            value={String(opt.value)}
-                          >
-                            {opt.label}
-                          </Select.Item>
-                        ))}
-                      </Select.Content>
-                    </Select.Root>
-                  </Flex>
-                )}
               </div>
             ) : null}
           </Card>
         )}
+
+        <div>
+          {/* Location Toggle */}
+          <Flex align="center" gap="3" mt="4" justify="center">
+            <MapPin size={20} />
+            <Text size="3">Enable location</Text>
+            <Switch
+              checked={locationEnabled}
+              onCheckedChange={setLocationEnabled}
+            />
+          </Flex>
+
+          {locationLoading && (
+            <Text size="2" color="gray">
+              Getting location...
+            </Text>
+          )}
+
+          {locationError && (
+            <Text size="2" color="red">
+              {locationError}
+            </Text>
+          )}
+
+          {/* Radius Selector (shown only when location enabled and available) */}
+          {locationEnabled && userLocation && (
+            <Flex align="center" gap="3" mt="2" justify="center">
+              <Text size="2" color="gray">
+                Search radius:
+              </Text>
+              <Select.Root
+                value={String(searchRadius)}
+                onValueChange={(v) => setSearchRadius(Number(v))}
+              >
+                <Select.Trigger />
+                <Select.Content>
+                  {RADIUS_OPTIONS.map((opt) => (
+                    <Select.Item key={opt.value} value={String(opt.value)}>
+                      {opt.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
+            </Flex>
+          )}
+        </div>
 
         {/* Status Messages */}
         {recommendation === null && excludeIds.length > 0 && (
