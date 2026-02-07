@@ -1,27 +1,23 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Development Commands
 
 ```bash
 # Start full-stack development (frontend + backend)
-npm run dev
+pnpm dev
 
 # Start frontend only
-npm run dev:frontend
+pnpm dev:frontend
 
 # Start Convex backend only
-npm run dev:backend
+pnpm dev:backend
 
 # Build for production
-npm run build
+pnpm build
 
 # Start production server
-npm run start
+pnpm start
 
 # Lint code
-npm run lint
+pnpm lint
 ```
 
 ## Architecture Overview
@@ -121,6 +117,7 @@ See `.cursor/rules/convex_rules.mdc` for comprehensive examples including HTTP e
 ## Environment Variables
 
 Environment variables are type-safe using T3 Env. See `env.ts` for the complete schema including:
+
 - Convex deployment and URL
 - Clerk authentication keys
 - OAuth provider credentials (Google, GitHub, Discord)
@@ -134,3 +131,4 @@ Environment variables are type-safe using T3 Env. See `env.ts` for the complete 
 - Radix UI Themes provides consistent design system
 - All Convex functions follow the new syntax with explicit args and returns validators
 - Always check the typescript and eslint errors before trying to commit
+- In React, `useEffect` are an anti-pattern and should rarely be used. Prefer actioning what you would do inline of the action/event with an event handler

@@ -1,6 +1,6 @@
 "use client";
 
-// import { Drawer } from "vaul";
+import { Drawer } from "vaul";
 import { useState, useEffect } from "react";
 import {
   Badge,
@@ -8,7 +8,6 @@ import {
   Heading,
   Text,
   Card,
-  Spinner,
   Box,
   VisuallyHidden,
   Flex,
@@ -16,9 +15,11 @@ import {
   IconButton,
   Switch,
   Select,
+  Container,
+  Theme,
 } from "@radix-ui/themes";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
-import { EyeOff, MapPin } from "lucide-react";
+import { EyeOff, MapPin, SlidersHorizontal } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 
@@ -420,14 +421,28 @@ export default function PlayPage() {
           </Card>
         ) : (
           <Card size="4" className="p-8 text-center">
-            {recommendation === undefined ? (
+            {/* {recommendation === undefined ?
               <div className="space-y-4">
                 <Spinner size="3" />
                 <Text size="4" color="gray">
                   Loading recommendations...
                 </Text>
+              </div> : null} */}
+
+            {recommendation === null ? (
+              <div className="space-y-4">
+                <Text size="6">🔍</Text>
+                <Heading as="h3" size="5">
+                  No matching activities
+                </Heading>
+                <Text size="4" color="gray">
+                  No activities found with the current filters. Try adjusting
+                  your filters or adding new activities.
+                </Text>
               </div>
-            ) : (
+            ) : null}
+
+            {recommendation !== null ? (
               <div className="space-y-4">
                 <Text size="6">🎯</Text>
                 <Heading as="h3" size="5">
@@ -485,7 +500,7 @@ export default function PlayPage() {
                   </Flex>
                 )}
               </div>
-            )}
+            ) : null}
           </Card>
         )}
 
@@ -528,8 +543,8 @@ export default function PlayPage() {
           <span className={styles.front}> Let&apos;s Play </span>
         </button>
 
-        {/* <Drawer.Root>
-          <Drawer.Trigger>
+        <Drawer.Root>
+          <Drawer.Trigger asChild>
             <Button size="4" variant="soft" radius="full">
               <SlidersHorizontal />
               <VisuallyHidden>Filters</VisuallyHidden>
@@ -538,78 +553,88 @@ export default function PlayPage() {
           <Drawer.Portal>
             <Drawer.Overlay className="fixed inset-0 bg-black/40" />
             <Drawer.Content className="bg-white h-fit fixed bottom-0 left-0 right-0 outline-none rounded-t-2xl">
-              <Container className="p-6">
-                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />
-                <Heading as="h3" size="5" className="mb-6 text-center">
-                  <Drawer.Title>Filter Activities</Drawer.Title>
-                </Heading>
+              <Theme>
+                <Container className="p-6">
+                  <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6" />
+                  <Heading
+                    as="h2"
+                    size="5"
+                    className="mb-6 text-center"
+                    asChild
+                  >
+                    <Drawer.Title>Filter Activities</Drawer.Title>
+                  </Heading>
 
-                <div className="space-y-6">
-                  <Flex justify="between" align="center" className="py-2">
-                    <div>
-                      <Text size="4" weight="medium">
-                        At home activities
-                      </Text>
-                      <Text size="2" color="gray">
-                        Show only activities tagged &quot;at home&quot;
-                      </Text>
-                    </div>
-                    <Switch
-                      checked={filters.atHome}
-                      onCheckedChange={(checked) =>
-                        setFilters((prev) => ({ ...prev, atHome: checked }))
-                      }
-                    />
-                  </Flex>
-
-                  <Flex justify="between" align="center" className="py-2">
-                    <div>
-                      <Text size="4" weight="medium">
-                        Rainproof activities
-                      </Text>
-                      <Text size="2" color="gray">
-                        Show only activities tagged &quot;rainproof&quot;
-                      </Text>
-                    </div>
-                    <Switch
-                      checked={filters.rainproof}
-                      onCheckedChange={(checked) =>
-                        setFilters((prev) => ({ ...prev, rainproof: checked }))
-                      }
-                    />
-                  </Flex>
-                </div>
-
-                {(filters.atHome || filters.rainproof) && (
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <Button
-                      size="2"
-                      variant="soft"
-                      color="gray"
-                      onClick={() =>
-                        setFilters({ atHome: false, rainproof: false })
-                      }
-                      className="w-full"
+                  <div className="space-y-6">
+                    <Flex
+                      justify="between"
+                      align="center"
+                      gap="4"
+                      className="py-2"
                     >
-                      Clear all filters
-                    </Button>
+                      <div className="flex-1 min-w-0">
+                        <Text as="p" size="4" weight="medium">
+                          At home activities
+                        </Text>
+                        <Text as="p" size="2" color="gray">
+                          Show only activities tagged &quot;at home&quot;
+                        </Text>
+                      </div>
+                      <Switch
+                        checked={filters.atHome}
+                        onCheckedChange={(checked) =>
+                          setFilters((prev) => ({ ...prev, atHome: checked }))
+                        }
+                      />
+                    </Flex>
+
+                    <Flex
+                      justify="between"
+                      align="center"
+                      gap="4"
+                      className="py-2"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <Text as="p" size="4" weight="medium">
+                          Rainproof activities
+                        </Text>
+                        <Text as="p" size="2" color="gray">
+                          Show only activities tagged &quot;rainproof&quot;
+                        </Text>
+                      </div>
+                      <Switch
+                        checked={filters.rainproof}
+                        onCheckedChange={(checked) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            rainproof: checked,
+                          }))
+                        }
+                      />
+                    </Flex>
                   </div>
-                )}
-              </Container>
+
+                  {(filters.atHome || filters.rainproof) && (
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                      <Button
+                        size="2"
+                        variant="soft"
+                        color="gray"
+                        onClick={() =>
+                          setFilters({ atHome: false, rainproof: false })
+                        }
+                        className="w-full"
+                      >
+                        Clear all filters
+                      </Button>
+                    </div>
+                  )}
+                </Container>
+              </Theme>
             </Drawer.Content>
           </Drawer.Portal>
-        </Drawer.Root> */}
+        </Drawer.Root>
       </Flex>
-
-      {/* History Counter */}
-      {/* {recommendationHistory.length > 0 && (
-          <Box className="text-center">
-            <Text size="2" color="gray">
-              Showing {currentIndex + 1} of {recommendationHistory.length}{" "}
-              recommendations
-            </Text>
-          </Box>
-        )} */}
     </Flex>
   );
 }

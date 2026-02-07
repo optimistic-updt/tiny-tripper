@@ -366,7 +366,7 @@ export const getRecommendation = query({
           const tags = activity.tags || [];
 
           // If atHome filter is active, activity must have "at home" tag
-          if (atHome && !tags.includes("at home")) {
+          if (atHome && !tags.includes("At Home")) {
             return false;
           }
 
