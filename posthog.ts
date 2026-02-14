@@ -7,6 +7,7 @@ export default function PostHogClient() {
     host: env.NEXT_PUBLIC_POSTHOG_HOST,
     flushAt: 1,
     flushInterval: 0,
+    personProfiles: "always",
   });
   return posthogClient;
 }

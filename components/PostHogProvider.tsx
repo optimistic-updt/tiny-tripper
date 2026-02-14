@@ -13,6 +13,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       defaults: "2025-05-24",
       capture_exceptions: true,
       debug: process.env.NODE_ENV === "development",
+      person_profiles: "always",
     });
   }, []);
 
