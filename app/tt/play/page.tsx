@@ -330,9 +330,11 @@ export default function PlayPage() {
               </div>
 
               {currentActivity.description && (
-                <Text size="4" color="gray">
-                  {currentActivity.description}
-                </Text>
+                <div className="max-h-[6em] overflow-y-auto">
+                  <Text size="4" color="gray">
+                    {currentActivity.description}
+                  </Text>
+                </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
