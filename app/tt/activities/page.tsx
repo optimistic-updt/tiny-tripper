@@ -1,34 +1,26 @@
 "use client";
 
-// import Link from "next/link";
-// import { ROUTES } from "@/app/routes";
+import { useState, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import { Flex, Spinner, Text } from "@radix-ui/themes";
-// import { SearchBar } from "@/components/SearchBar";
-
-// type Activity = {
-//   _id: string;
-//   name: string;
-//   description?: string;
-//   location?: string;
-//   tags?: string[];
-//   urgency?: "low" | "medium" | "high";
-//   endDate?: string;
-//   isPublic?: boolean;
-//   userId?: string;
-//   _score?: number;
-// };
+import { SearchBar } from "@/components/SearchBar";
 
 export default function ActivitiesPage() {
   const allActivities = useQuery(api.activities.listActivities);
-  // const [searchResults, setSearchResults] = useState<Activity[]>([]);
-  // const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchResults, setSearchResults] = useState<Doc<"activities">[]>([]);
+  const [isSearchActive, setIsSearchActive] = useState(false);
 
-  // const handleSearchResults = (results: Activity[]) => {
-  //   setSearchResults(results);
-  //   setIsSearchActive(results.length > 0 || true); // Show search results even if empty to indicate search was performed
-  // };
+  const handleSearchResults = useCallback((results: Doc<"activities">[]) => {
+    setSearchResults(results);
+    setIsSearchActive(true);
+  }, []);
+
+  const handleSearchCleared = useCallback(() => {
+    setSearchResults([]);
+    setIsSearchActive(false);
+  }, []);
 
   // Show loading state while data is being fetched
   if (allActivities === undefined) {
@@ -40,7 +32,7 @@ export default function ActivitiesPage() {
     );
   }
 
-  const displayActivities = allActivities;
+  const displayActivities = isSearchActive ? searchResults : allActivities;
 
   return (
     <Flex
@@ -52,7 +44,10 @@ export default function ActivitiesPage() {
       overflowY="auto"
       p="5"
     >
-      {/* <SearchBar onSearchResults={handleSearchResults} /> */}
+      <SearchBar
+        onSearchResults={handleSearchResults}
+        onSearchCleared={handleSearchCleared}
+      />
 
       {/* Activities list */}
       {displayActivities && displayActivities.length > 0 ? (
@@ -62,11 +57,7 @@ export default function ActivitiesPage() {
               key={activity._id}
               className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
             >
-              {/* link */}
-              <div
-                // href={ROUTES.build.activity(String(activity._id))}
-                className="block"
-              >
+              <div className="block">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">
                   {activity.name}
                 </h2>
@@ -96,10 +87,9 @@ export default function ActivitiesPage() {
         </ul>
       ) : (
         <div className="text-center text-gray-500 mt-8">
-          No activities available.
-          {/*  {isSearchActive
-       90 -                ? "No activities found for your search."
-       91 -                : "No activities available."} */}
+          {isSearchActive
+            ? "No activities found for your search."
+            : "No activities available."}
         </div>
       )}
     </Flex>

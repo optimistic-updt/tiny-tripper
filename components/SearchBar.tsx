@@ -1,28 +1,31 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
 
 interface SearchBarProps {
   onSearchResults: (results: Doc<"activities">[]) => void;
+  onSearchCleared: () => void;
   placeholder?: string;
 }
 
 export function SearchBar({
   onSearchResults,
+  onSearchCleared,
   placeholder = "Search activities...",
 }: SearchBarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const searchActivities = useAction(api.activities.searchActivities);
 
   const handleSearch = useCallback(
     async (term: string) => {
       if (!term.trim()) {
-        // onSearchResults([]);
+        onSearchCleared();
         setIsSearching(false);
         return;
       }
@@ -30,16 +33,15 @@ export function SearchBar({
       setIsSearching(true);
       try {
         const results = await searchActivities({ searchTerm: term });
-
         onSearchResults(results);
       } catch (error) {
         console.error("Search error:", error);
-        // onSearchResults([]);
+        onSearchCleared();
       } finally {
         setIsSearching(false);
       }
     },
-    [searchActivities, onSearchResults],
+    [searchActivities, onSearchResults, onSearchCleared],
   );
 
   const handleInputChange = useCallback(
@@ -47,12 +49,14 @@ export function SearchBar({
       const value = e.target.value;
       setSearchTerm(value);
 
-      // Debounce search
-      const timeoutId = setTimeout(() => {
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current);
+      }
+
+      debounceRef.current = setTimeout(() => {
+        debounceRef.current = null;
         handleSearch(value);
       }, 300);
-
-      return () => clearTimeout(timeoutId);
     },
     [handleSearch],
   );
