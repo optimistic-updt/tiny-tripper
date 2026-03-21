@@ -42,6 +42,8 @@ export default function ActivitiesPage() {
       minHeight="0"
       flexGrow="1"
       overflowY="auto"
+      overflowX="hidden"
+      width="100%"
       p="5"
     >
       <SearchBar
@@ -51,18 +53,18 @@ export default function ActivitiesPage() {
 
       {/* Activities list */}
       {displayActivities && displayActivities.length > 0 ? (
-        <ul role="list" className="space-y-4">
+        <ul role="list" className="space-y-4 w-full max-w-full overflow-hidden">
           {displayActivities.map((activity) => (
             <li
               key={activity._id}
-              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow overflow-hidden"
             >
-              <div className="block">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              <div className="block min-w-0">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2 break-words">
                   {activity.name}
                 </h2>
                 {activity.description && (
-                  <p className="text-gray-600 mb-2">{activity.description}</p>
+                  <p className="text-gray-600 mb-2 break-words">{activity.description}</p>
                 )}
                 {activity.location && (
                   <p className="text-sm text-gray-500 mb-1">
