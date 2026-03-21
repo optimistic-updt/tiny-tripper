@@ -360,10 +360,11 @@ export const getRecommendation = query({
           return false;
         }
 
+        const tags = activity.tags || [];
+
         // Apply tag filters (AND logic)
         if (args.filters) {
           const { atHome, rainproof } = args.filters;
-          const tags = activity.tags || [];
 
           // If atHome filter is active, activity must have "at home" tag
           if (atHome && !tags.includes("At Home")) {
@@ -377,7 +378,12 @@ export const getRecommendation = query({
         }
 
         // Filter by location if enabled
-        if (nearbyActivityIds && !nearbyActivityIds.has(activity._id.toString())) {
+        // Activities tagged "At Home" bypass proximity check — home is always nearby
+        if (
+          nearbyActivityIds &&
+          !nearbyActivityIds.has(activity._id.toString()) &&
+          !tags.includes("At Home")
+        ) {
           return false;
         }
 
