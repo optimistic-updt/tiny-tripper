@@ -12,6 +12,17 @@ const geospatial = new GeospatialIndex<
   { tags: string[]; urgency: "low" | "medium" | "high" }
 >(components.geospatial);
 
+/** Tags that identify food-related activities */
+const FOOD_TAGS = [
+  "Food",
+  "Restaurant",
+  "Cafe",
+  "Dining",
+  "Bakery",
+  "Bar",
+  "Brunch",
+];
+
 const OpenAIClient = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
 });
@@ -287,6 +298,7 @@ export const getRecommendation = query({
       v.object({
         atHome: v.boolean(),
         rainproof: v.boolean(),
+        food: v.boolean(),
       }),
     ),
     randomSeed: v.optional(v.number()),
@@ -364,7 +376,7 @@ export const getRecommendation = query({
 
         // Apply tag filters (AND logic)
         if (args.filters) {
-          const { atHome, rainproof } = args.filters;
+          const { atHome, rainproof, food } = args.filters;
 
           // If atHome filter is active, activity must have "at home" tag
           if (atHome && !tags.includes("At Home")) {
@@ -373,6 +385,11 @@ export const getRecommendation = query({
 
           // If rainproof filter is active, activity must have "rainproof" tag
           if (rainproof && !tags.includes("rain-approved")) {
+            return false;
+          }
+
+          // Food filter: OFF = exclude food activities, ON = include them
+          if (!food && tags.some((tag) => FOOD_TAGS.includes(tag))) {
             return false;
           }
         }

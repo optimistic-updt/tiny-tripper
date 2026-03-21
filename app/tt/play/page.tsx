@@ -46,6 +46,7 @@ export default function PlayPage() {
   const [filters, setFilters] = useState({
     atHome: false,
     rainproof: false,
+    food: false,
   });
   const [randomSeed, setRandomSeed] = useState(() =>
     Math.floor(Math.random() * 1000000),
@@ -67,7 +68,8 @@ export default function PlayPage() {
     const savedFilters = sessionStorage.getItem("activity-filters");
     if (savedFilters) {
       try {
-        setFilters(JSON.parse(savedFilters));
+        const parsed = JSON.parse(savedFilters);
+        setFilters((prev) => ({ ...prev, ...parsed }));
       } catch (error) {
         console.error("Failed to parse saved filters:", error);
       }
@@ -613,16 +615,45 @@ export default function PlayPage() {
                         }
                       />
                     </Flex>
+
+                    <Flex
+                      justify="between"
+                      align="center"
+                      gap="4"
+                      className="py-2"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <Text as="p" size="4" weight="medium">
+                          Food activities
+                        </Text>
+                        <Text as="p" size="2" color="gray">
+                          Include restaurants, cafes, and dining options
+                        </Text>
+                      </div>
+                      <Switch
+                        checked={filters.food}
+                        onCheckedChange={(checked) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            food: checked,
+                          }))
+                        }
+                      />
+                    </Flex>
                   </div>
 
-                  {(filters.atHome || filters.rainproof) && (
+                  {(filters.atHome || filters.rainproof || filters.food) && (
                     <div className="mt-6 pt-4 border-t border-gray-200">
                       <Button
                         size="2"
                         variant="soft"
                         color="gray"
                         onClick={() =>
-                          setFilters({ atHome: false, rainproof: false })
+                          setFilters({
+                            atHome: false,
+                            rainproof: false,
+                            food: false,
+                          })
                         }
                         className="w-full"
                       >
