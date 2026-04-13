@@ -376,9 +376,17 @@ export const getRecommendation = query({
           }
         }
 
-        // Filter by location if enabled
-        if (nearbyActivityIds && !nearbyActivityIds.has(activity._id.toString())) {
-          return false;
+        // Filter by location if enabled (still include activities with no location)
+        if (nearbyActivityIds) {
+          const hasCoordinates =
+            activity.location?.latitude != null &&
+            activity.location?.longitude != null;
+          if (
+            hasCoordinates &&
+            !nearbyActivityIds.has(activity._id.toString())
+          ) {
+            return false;
+          }
         }
 
         return true;
