@@ -214,7 +214,11 @@ export const getActivity = query({
       _creationTime: v.number(),
       name: v.string(),
       description: v.optional(v.string()),
-      urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+      urgency: v.union(
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+      ),
       location: v.optional(
         v.object({
           name: v.string(),
