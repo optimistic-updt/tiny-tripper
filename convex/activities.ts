@@ -12,16 +12,32 @@ const geospatial = new GeospatialIndex<
   { tags: string[]; urgency: "low" | "medium" | "high" }
 >(components.geospatial);
 
-/** Tags that identify food-related activities */
+/** Tags that identify food-related activities. Stored lowercase per tag convention. */
 const FOOD_TAGS = [
-  "Food",
-  "Restaurant",
-  "Cafe",
-  "Dining",
-  "Bakery",
-  "Bar",
-  "Brunch",
+  "food",
+  "restaurant",
+  "cafe",
+  "dining",
+  "bakery",
+  "bar",
+  "brunch",
 ];
+
+/** Canonical narrow-filter tags. Stored lowercase per tag convention. */
+const NARROW_TAG = {
+  atHome: "at home",
+  rainproof: "rain approved",
+  outdoor: "outdoor",
+} as const;
+
+/**
+ * Normalize a tag to the canonical form: trimmed + lowercased.
+ * Intentional hyphens are preserved (e.g. "sit-down") — the known legacy
+ * hyphenated tag ("rain-approved") is handled explicitly by the migration.
+ */
+export function normalizeTag(tag: string): string {
+  return tag.trim().toLowerCase();
+}
 
 const OpenAIClient = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -84,6 +100,13 @@ export const createActivityDocument = internalMutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
 
+    // Normalize and dedupe tags on write so the DB holds canonical values.
+    const normalizedTags = args.tags
+      ? Array.from(
+          new Set(args.tags.map(normalizeTag).filter((t) => t.length > 0)),
+        )
+      : undefined;
+
     const activityId = await ctx.db.insert("activities", {
       name: args.name,
       description: args.description,
@@ -93,7 +116,7 @@ export const createActivityDocument = internalMutation({
       endDate: args.endDate,
       isPublic: args.isPublic ?? false,
       userId: identity?.subject,
-      tags: args.tags,
+      tags: normalizedTags,
       embedding: args.embedding,
       imageId: args.imageId,
     });
@@ -107,7 +130,7 @@ export const createActivityDocument = internalMutation({
           longitude: args.location.longitude,
         },
         {
-          tags: args.tags || [],
+          tags: normalizedTags || [],
           urgency: args.urgency || "medium",
         },
       );
@@ -296,9 +319,19 @@ export const getRecommendation = query({
     excludeIds: v.optional(v.array(v.id("activities"))),
     filters: v.optional(
       v.object({
-        atHome: v.boolean(),
-        rainproof: v.boolean(),
-        food: v.boolean(),
+        // Narrow filters (inclusion, union). Off by default — turning one on
+        // restricts results to that category. Multiple active narrows OR
+        // together.
+        only: v.object({
+          atHome: v.boolean(),
+          rainproof: v.boolean(),
+          outdoor: v.boolean(),
+        }),
+        // Exclude filters (subtraction). On by default (category included) —
+        // turning one off removes that category from results.
+        exclude: v.object({
+          food: v.boolean(),
+        }),
       }),
     ),
     randomSeed: v.optional(v.number()),
@@ -372,34 +405,49 @@ export const getRecommendation = query({
           return false;
         }
 
-        const tags = activity.tags || [];
+        // Normalize tags once for case/whitespace-insensitive matching,
+        // so legacy mixed-case tags still match until they're migrated.
+        const tags = (activity.tags || []).map(normalizeTag);
 
-        // Apply tag filters (AND logic)
+        // Apply category filters.
+        //
+        // Narrow filters (only) default OFF. If any are active, the activity
+        // must match at least one active narrow (union / OR semantics).
+        //
+        // Exclude filters default OFF (category included). When toggled on,
+        // the activity is dropped if it matches that category.
         if (args.filters) {
-          const { atHome, rainproof, food } = args.filters;
+          const { only, exclude } = args.filters;
 
-          // If atHome filter is active, activity must have "at home" tag
-          if (atHome && !tags.includes("At Home")) {
-            return false;
+          const narrowActive = only.atHome || only.rainproof || only.outdoor;
+          if (narrowActive) {
+            const matchesNarrow =
+              (only.atHome && tags.includes(NARROW_TAG.atHome)) ||
+              (only.rainproof && tags.includes(NARROW_TAG.rainproof)) ||
+              (only.outdoor && tags.includes(NARROW_TAG.outdoor));
+            if (!matchesNarrow) {
+              return false;
+            }
           }
 
-          // If rainproof filter is active, activity must have "rainproof" tag
-          if (rainproof && !tags.includes("rain-approved")) {
-            return false;
-          }
-
-          // Food filter: OFF = exclude food activities, ON = include them
-          if (!food && tags.some((tag) => FOOD_TAGS.includes(tag))) {
+          if (exclude.food && tags.some((tag) => FOOD_TAGS.includes(tag))) {
             return false;
           }
         }
 
-        // Filter by location if enabled
-        // Activities tagged "At Home" bypass proximity check — home is always nearby
+        // Filter by location (radius) if enabled.
+        // The radius filter only constrains activities that have a physical
+        // location. Activities tagged "at home" and activities with no
+        // location attached bypass the proximity check.
+        const hasPhysicalLocation =
+          activity.location?.latitude != null &&
+          activity.location?.longitude != null;
+
         if (
           nearbyActivityIds &&
-          !nearbyActivityIds.has(activity._id.toString()) &&
-          !tags.includes("At Home")
+          hasPhysicalLocation &&
+          !tags.includes(NARROW_TAG.atHome) &&
+          !nearbyActivityIds.has(activity._id.toString())
         ) {
           return false;
         }

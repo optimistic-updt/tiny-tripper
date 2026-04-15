@@ -43,14 +43,27 @@ export default function PlayPage() {
   >([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [excludeIds, setExcludeIds] = useState<Id<"activities">[]>([]);
+  // Filter model: two kinds with distinct semantics.
+  // - `only.*`: narrow filters, default OFF. When any are on, results are
+  //   restricted to activities matching at least one active narrow (union).
+  // - `exclude.*`: subtractive filters, default OFF (category included).
+  //   Toggling one on removes that category from results.
   const [filters, setFilters] = useState({
-    atHome: false,
-    rainproof: false,
-    food: false,
+    only: { atHome: false, rainproof: false, outdoor: false },
+    exclude: { food: false },
   });
   const [randomSeed, setRandomSeed] = useState(() =>
     Math.floor(Math.random() * 1000000),
   );
+
+  const defaultFiltersAreActive =
+    filters.only.atHome ||
+    filters.only.rainproof ||
+    filters.only.outdoor ||
+    filters.exclude.food;
+
+  const radiusHidden =
+    filters.only.atHome && !filters.only.rainproof && !filters.only.outdoor;
 
   // Location state
   const [locationEnabled, setLocationEnabled] = useState(false);
@@ -63,13 +76,18 @@ export default function PlayPage() {
 
   const [searchRadius, setSearchRadius] = useState(5000);
 
-  // Load filters from sessionStorage on mount
+  // Load filters from sessionStorage on mount. Key is bumped to v2 because
+  // the filter shape changed semantics — old state from the previous model
+  // must not be loaded into the new model.
   useEffect(() => {
-    const savedFilters = sessionStorage.getItem("activity-filters");
+    const savedFilters = sessionStorage.getItem("activity-filters-v2");
     if (savedFilters) {
       try {
         const parsed = JSON.parse(savedFilters);
-        setFilters((prev) => ({ ...prev, ...parsed }));
+        setFilters((prev) => ({
+          only: { ...prev.only, ...(parsed.only ?? {}) },
+          exclude: { ...prev.exclude, ...(parsed.exclude ?? {}) },
+        }));
       } catch (error) {
         console.error("Failed to parse saved filters:", error);
       }
@@ -78,7 +96,7 @@ export default function PlayPage() {
 
   // Save filters to sessionStorage when they change
   useEffect(() => {
-    sessionStorage.setItem("activity-filters", JSON.stringify(filters));
+    sessionStorage.setItem("activity-filters-v2", JSON.stringify(filters));
     // Reset recommendation history and excludeIds when filters change
     setRecommendationHistory([]);
     setCurrentIndex(-1);
@@ -229,7 +247,7 @@ export default function PlayPage() {
         </Text>
       </div> */}
 
-      <div className="space-y-6">
+      <div className="space-y-6 mb-4">
         {/* Activity Display */}
         {currentActivity ? (
           <Card size="4" className="p-8">
@@ -332,7 +350,7 @@ export default function PlayPage() {
               </div>
 
               {currentActivity.description && (
-                <div className="max-h-[6em] overflow-y-auto">
+                <div className="max-h-[5em] overflow-y-auto">
                   <Text size="4" color="gray">
                     {currentActivity.description}
                   </Text>
@@ -407,13 +425,6 @@ export default function PlayPage() {
                 </div>
               )}
 
-              <div className="pt-4 border-t border-gray-200">
-                <Text size="2" color="gray">
-                  Recommendation Score: {Math.round(currentActivity.score)}{" "}
-                  points
-                </Text>
-              </div>
-
               {!isAuthenticated && (
                 <div className="pt-4 border-t border-gray-200">
                   <Text size="2" color="gray">
@@ -484,8 +495,10 @@ export default function PlayPage() {
             </Text>
           )}
 
-          {/* Radius Selector (shown only when location enabled and available) */}
-          {locationEnabled && userLocation && (
+          {/* Radius selector. Hidden when the only active narrow is
+              "At Home" — in that case every result bypasses the radius
+              check anyway, so the selector is meaningless. */}
+          {locationEnabled && userLocation && !radiusHidden && (
             <Flex align="center" gap="3" mt="2" justify="center">
               <Text size="2" color="gray">
                 Search radius:
@@ -569,80 +582,114 @@ export default function PlayPage() {
                   </Heading>
 
                   <div className="space-y-6">
-                    <Flex
-                      justify="between"
-                      align="center"
-                      gap="4"
-                      className="py-2"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <Text as="p" size="4" weight="medium">
-                          At home activities
-                        </Text>
-                        <Text as="p" size="2" color="gray">
-                          Show only activities tagged &quot;at home&quot;
-                        </Text>
-                      </div>
-                      <Switch
-                        checked={filters.atHome}
-                        onCheckedChange={(checked) =>
-                          setFilters((prev) => ({ ...prev, atHome: checked }))
-                        }
-                      />
-                    </Flex>
+                    {/* Narrow filters — off by default. Turning one on
+                        restricts results to that category. Multiple on =
+                        union (OR). */}
+                    <div>
+                      <Text as="p" size="3" weight="bold" mb="1">
+                        Narrow to
+                      </Text>
+                      <Text as="p" size="2" color="gray" mb="3">
+                        When any of these are on, only matching activities are
+                        shown. Combine freely — multiple are OR-ed together.
+                      </Text>
 
-                    <Flex
-                      justify="between"
-                      align="center"
-                      gap="4"
-                      className="py-2"
-                    >
-                      <div className="flex-1 min-w-0">
+                      <Flex
+                        justify="between"
+                        align="center"
+                        gap="4"
+                        className="py-2"
+                      >
                         <Text as="p" size="4" weight="medium">
-                          Rainproof activities
+                          At home only
                         </Text>
-                        <Text as="p" size="2" color="gray">
-                          Show only activities tagged &quot;rainproof&quot;
-                        </Text>
-                      </div>
-                      <Switch
-                        checked={filters.rainproof}
-                        onCheckedChange={(checked) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            rainproof: checked,
-                          }))
-                        }
-                      />
-                    </Flex>
+                        <Switch
+                          checked={filters.only.atHome}
+                          onCheckedChange={(checked) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              only: { ...prev.only, atHome: checked },
+                            }))
+                          }
+                        />
+                      </Flex>
 
-                    <Flex
-                      justify="between"
-                      align="center"
-                      gap="4"
-                      className="py-2"
-                    >
-                      <div className="flex-1 min-w-0">
+                      <Flex
+                        justify="between"
+                        align="center"
+                        gap="4"
+                        className="py-2"
+                      >
                         <Text as="p" size="4" weight="medium">
-                          Food activities
+                          Rain approved only
                         </Text>
-                        <Text as="p" size="2" color="gray">
-                          Include restaurants, cafes, and dining options
+                        <Switch
+                          checked={filters.only.rainproof}
+                          onCheckedChange={(checked) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              only: { ...prev.only, rainproof: checked },
+                            }))
+                          }
+                        />
+                      </Flex>
+
+                      <Flex
+                        justify="between"
+                        align="center"
+                        gap="4"
+                        className="py-2"
+                      >
+                        <Text as="p" size="4" weight="medium">
+                          Outdoor only
                         </Text>
-                      </div>
-                      <Switch
-                        checked={filters.food}
-                        onCheckedChange={(checked) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            food: checked,
-                          }))
-                        }
-                      />
-                    </Flex>
+                        <Switch
+                          checked={filters.only.outdoor}
+                          onCheckedChange={(checked) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              only: { ...prev.only, outdoor: checked },
+                            }))
+                          }
+                        />
+                      </Flex>
+                    </div>
+
+                    {/* Exclude filters — default off (category included).
+                        Toggle on to remove that category from results. */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <Text as="p" size="3" weight="bold" mb="3">
+                        Exclude
+                      </Text>
+
+                      <Flex
+                        justify="between"
+                        align="center"
+                        gap="4"
+                        className="py-2"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <Text as="p" size="4" weight="medium">
+                            Hide food activities
+                          </Text>
+                          <Text as="p" size="2" color="gray">
+                            Restaurants, cafes, and dining options
+                          </Text>
+                        </div>
+                        <Switch
+                          checked={filters.exclude.food}
+                          onCheckedChange={(checked) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              exclude: { ...prev.exclude, food: checked },
+                            }))
+                          }
+                        />
+                      </Flex>
+                    </div>
                   </div>
 
-                  {(filters.atHome || filters.rainproof || filters.food) && (
+                  {defaultFiltersAreActive && (
                     <div className="mt-6 pt-4 border-t border-gray-200">
                       <Button
                         size="2"
@@ -650,14 +697,17 @@ export default function PlayPage() {
                         color="gray"
                         onClick={() =>
                           setFilters({
-                            atHome: false,
-                            rainproof: false,
-                            food: false,
+                            only: {
+                              atHome: false,
+                              rainproof: false,
+                              outdoor: false,
+                            },
+                            exclude: { food: false },
                           })
                         }
                         className="w-full"
                       >
-                        Clear all filters
+                        Reset filters
                       </Button>
                     </div>
                   )}

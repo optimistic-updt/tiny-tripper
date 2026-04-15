@@ -57,78 +57,14 @@ posthog.ts            # PostHog configuration
 
 ## Convex Integration
 
-- Database schema defined in `convex/schema.ts`
-- Authentication configured for Clerk integration via `convex/auth.config.ts`
-- Real-time features available through Convex subscriptions
-
-### Function Syntax
-
-Always use the new function syntax with explicit args and returns validators:
-
-```typescript
-import { query } from "./_generated/server";
-import { v } from "convex/values";
-
-export const myFunction = query({
-  args: { name: v.string() },
-  returns: v.string(),
-  handler: async (ctx, args) => {
-    return "Hello " + args.name;
-  },
-});
-```
-
-### Key Conventions
-
-- **Public functions**: Use `query`, `mutation`, `action` for public API
-- **Internal functions**: Use `internalQuery`, `internalMutation`, `internalAction` for private functions
-- **Always include validators**: Every function needs `args` and `returns` validators
-- **Null returns**: Use `returns: v.null()` when a function doesn't return anything
-- **Function references**: Use `api.file.function` for public, `internal.file.function` for internal
-
-### Query Guidelines
-
-- Do NOT use `filter` in queries - use `withIndex` instead
-- Define indexes in schema for all query patterns
-- Use `.order('asc')` or `.order('desc')` for ordering
-- Use `.unique()` to get a single document (throws if multiple match)
-
-### Schema Guidelines
-
-- System fields `_id` and `_creationTime` are automatically added
-- Index names should include all fields: `by_field1_and_field2`
-- Index fields must be queried in the order they are defined
-
-### Actions
-
-- Add `"use node";` at top of files using Node.js modules
-- Actions cannot use `ctx.db` - use `ctx.runQuery`/`ctx.runMutation` instead
-- Minimize calls from actions to queries/mutations (each is a separate transaction)
-
-### File Storage
-
-- Use `ctx.storage.getUrl()` to get signed URLs for files
-- Query `_storage` system table for file metadata: `ctx.db.system.get(fileId)`
-
-### Full Reference
-
-See `.cursor/rules/convex_rules.mdc` for comprehensive examples including HTTP endpoints, pagination, crons, and more
-
-## Environment Variables
-
-Environment variables are type-safe using T3 Env. See `env.ts` for the complete schema including:
-
-- Convex deployment and URL
-- Clerk authentication keys
-- OAuth provider credentials (Google, GitHub, Discord)
-- PostHog analytics configuration
+If you are working with Convex, you should go read the Convex docs at [`docs/convex.md`](docs/convex.md).
 
 ## Development Patterns
 
-- Components are wrapped with ConvexClientProvider for database access
-- Clerk handles authentication with dynamic loading
-- PostHog provider enables analytics tracking
-- Radix UI Themes provides consistent design system
 - All Convex functions follow the new syntax with explicit args and returns validators
 - Always check the typescript and eslint errors before trying to commit
 - In React, `useEffect` are an anti-pattern and should rarely be used. Prefer actioning what you would do inline of the action/event with an event handler
+
+## Play page
+
+When working on the play page (`app/tt/play/`) or the recommendation query that powers it (`convex/activities.ts` → `getRecommendation`), read [`docs/play.md`](docs/play.md) first. That file is the product spec for the page's default behavior, filters, and location handling.

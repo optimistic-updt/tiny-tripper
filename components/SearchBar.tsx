@@ -70,7 +70,7 @@ export function SearchBar({
   );
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 w-full">
       <form onSubmit={handleSubmit} className="relative">
         <input
           type="text"

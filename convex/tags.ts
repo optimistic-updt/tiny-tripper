@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { normalizeTag } from "./activities";
 
 export const listTags = query({
   args: {
@@ -40,16 +41,15 @@ export const createTag = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const trimmedName = args.name.trim();
+    const normalizedName = normalizeTag(args.name);
 
-    if (!trimmedName) {
+    if (!normalizedName) {
       throw new Error("Tag name cannot be empty");
     }
 
-    // Check if tag already exists (case-insensitive)
     const existingTag = await ctx.db
       .query("tags")
-      .filter(q => q.eq(q.field("name"), trimmedName))
+      .withIndex("by_name", (q) => q.eq("name", normalizedName))
       .first();
 
     if (existingTag) {
@@ -57,7 +57,7 @@ export const createTag = mutation({
     }
 
     const tagId = await ctx.db.insert("tags", {
-      name: trimmedName,
+      name: normalizedName,
       createdAt: Date.now(),
     });
 
@@ -71,21 +71,21 @@ export const getOrCreateTags = mutation({
   },
   handler: async (ctx, args) => {
     const results = [];
+    const seen = new Set<string>();
 
     for (const name of args.names) {
-      const trimmedName = name.trim();
-      if (!trimmedName) continue;
+      const normalizedName = normalizeTag(name);
+      if (!normalizedName || seen.has(normalizedName)) continue;
+      seen.add(normalizedName);
 
-      // Try to find existing tag first
       let tag = await ctx.db
         .query("tags")
-        .filter(q => q.eq(q.field("name"), trimmedName))
+        .withIndex("by_name", (q) => q.eq("name", normalizedName))
         .first();
 
-      // Create tag if it doesn't exist
       if (!tag) {
         const tagId = await ctx.db.insert("tags", {
-          name: trimmedName,
+          name: normalizedName,
           createdAt: Date.now(),
         });
         tag = await ctx.db.get(tagId);

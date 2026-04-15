@@ -88,10 +88,10 @@ export default function CreateActivityPage() {
 
     const tags = [...(data.tags || [])];
     if (data.rainApproved) {
-      tags.push("rain-approved");
+      tags.push("rain approved");
     }
     if (data.inHome) {
-      tags.push("At Home");
+      tags.push("at home");
     }
 
     try {
