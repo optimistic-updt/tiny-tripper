@@ -25,9 +25,17 @@ export default function ActivitiesPage() {
   // Show loading state while data is being fetched
   if (allActivities === undefined) {
     return (
-      <Flex direction="column" align="center" justify="center" height="100%" p="5">
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        height="100%"
+        p="5"
+      >
         <Spinner size="3" />
-        <Text size="4" color="gray" mt="4">Loading activities...</Text>
+        <Text size="4" color="gray" mt="4">
+          Loading activities...
+        </Text>
       </Flex>
     );
   }
@@ -53,18 +61,23 @@ export default function ActivitiesPage() {
 
       {/* Activities list */}
       {displayActivities && displayActivities.length > 0 ? (
-        <ul role="list" className="space-y-4 w-full max-w-full overflow-hidden">
+        <ul
+          role="list"
+          className="space-y-4 w-full max-w-full overflow-y-scroll"
+        >
           {displayActivities.map((activity) => (
             <li
               key={activity._id}
               className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow overflow-hidden"
             >
               <div className="block min-w-0">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2 break-words">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2 wrap-break-word">
                   {activity.name}
                 </h2>
                 {activity.description && (
-                  <p className="text-gray-600 mb-2 break-words">{activity.description}</p>
+                  <p className="text-gray-600 mb-2 wrap-break-word">
+                    {activity.description}
+                  </p>
                 )}
                 {activity.location && (
                   <p className="text-sm text-gray-500 mb-1">
