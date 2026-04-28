@@ -5,6 +5,7 @@ import type { RawActivity } from "./scraping";
 import type { StandardizedActivity } from "./formatting";
 import type { Id } from "./_generated/dataModel";
 import { mutation, internalMutation } from "./_generated/server";
+import { scrapeOptions, workflowConfig } from "./schema";
 
 const workflow = new WorkflowManager(components.workflow);
 
@@ -49,19 +50,8 @@ interface ImportSummary {
 export const websiteScrapeWorkflow = workflow.define({
   args: {
     url: v.string(),
-    config: v.optional(
-      v.object({
-        maxDepth: v.optional(v.number()),
-        maxPages: v.optional(v.number()),
-        maxExtractions: v.optional(v.number()),
-        autoImport: v.optional(v.boolean()),
-        urgencyDefault: v.optional(
-          v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-        ),
-        tagsHint: v.optional(v.array(v.string())),
-        useMockScrape: v.optional(v.boolean()),
-      }),
-    ),
+    scrapeOptions: v.optional(v.object(scrapeOptions)),
+    workflowConfig: v.optional(v.object(workflowConfig)),
   },
   handler: async (
     step,
@@ -74,22 +64,26 @@ export const websiteScrapeWorkflow = workflow.define({
     filename?: string;
     importSummary?: ImportSummary;
   }> => {
-    // Apply config defaults
-    const config = {
-      maxDepth: args.config?.maxDepth,
-      maxPages: args.config?.maxPages || 150,
-      maxExtractions: args.config?.maxExtractions || 150,
-      autoImport: args.config?.autoImport ?? false,
-      urgencyDefault: args.config?.urgencyDefault || "medium",
-      isPublic: true,
-      tagsHint: args.config?.tagsHint || undefined,
-      useMockScrape: args.config?.useMockScrape ?? false,
+    // Apply defaults
+    const scrapeOpts = {
+      scraper: args.scrapeOptions?.scraper,
+      maxCrawlVisit: args.scrapeOptions?.maxCrawlVisit ?? 150,
+      maxDepth: args.scrapeOptions?.maxDepth ?? 3,
+      maxExtractions: args.scrapeOptions?.maxExtractions ?? 150,
+      followExternalLinks: args.scrapeOptions?.followExternalLinks,
+      tagsHint: args.scrapeOptions?.tagsHint,
+    };
+    const wfConfig = {
+      autoImport: args.workflowConfig?.autoImport ?? false,
+      urgencyDefault: args.workflowConfig?.urgencyDefault || "medium",
+      useMockScrape: args.workflowConfig?.useMockScrape ?? false,
     };
 
     const workflowId = step.workflowId;
 
     console.log(`Starting scrape workflow ${workflowId} for URL: ${args.url}`);
-    console.log(`Config:`, config);
+    console.log(`Scrape options:`, scrapeOpts);
+    console.log(`Workflow config:`, wfConfig);
 
     // Step 0: Create workflow metadata record
     await step.runMutation(
@@ -97,7 +91,8 @@ export const websiteScrapeWorkflow = workflow.define({
       {
         workflowId,
         url: args.url,
-        config: args.config || {},
+        scrapeOptions: scrapeOpts,
+        workflowConfig: wfConfig,
       },
       { name: "create-workflow-record" },
     );
@@ -107,11 +102,8 @@ export const websiteScrapeWorkflow = workflow.define({
       internal.scraping.scrapeWebsiteAndStore,
       {
         url: args.url,
-        maxDepth: config.maxDepth,
-        maxPages: config.maxPages,
-        maxExtractions: config.maxExtractions,
-        tagsHint: config.tagsHint,
-        useMockScrape: config.useMockScrape,
+        scrapeOptions: scrapeOpts,
+        useMockScrape: wfConfig.useMockScrape,
         workflowId,
       },
       { name: "scrape-website-and-store" },
@@ -141,7 +133,7 @@ export const websiteScrapeWorkflow = workflow.define({
 
     if (rawActivities.length === 0) {
       console.log("No activities found, workflow complete");
-      
+
       await step.runMutation(
         internal.workflowMetadata.completeWorkflow,
         {
@@ -164,10 +156,7 @@ export const websiteScrapeWorkflow = workflow.define({
         internal.formatting.standardizeActivities,
         {
           rawActivities,
-          config: {
-            urgencyDefault: config.urgencyDefault,
-            isPublic: config.isPublic,
-          },
+          workflowConfig: wfConfig,
         },
         { name: "standardize-activities" },
       );
@@ -227,9 +216,7 @@ export const websiteScrapeWorkflow = workflow.define({
       ),
     ]);
 
-    console.log(
-      `Parallel processing complete. Batch ID: ${embeddingBatchId}`,
-    );
+    console.log(`Parallel processing complete. Batch ID: ${embeddingBatchId}`);
 
     // Step 3d: Poll embedding batch until complete and store
     console.log(`Polling embedding batch: ${embeddingBatchId}`);
@@ -304,12 +291,14 @@ export const websiteScrapeWorkflow = workflow.define({
     // Step 5b: Generate and store JSONL file directly
     console.log("Generating and storing JSONL file");
 
-    const { storageId, filename }: { storageId: Id<"_storage">; filename: string } =
-      await step.runAction(
-        internal.importing.generateAndStoreJsonL,
-        { mergedActivitiesStorageId, runId },
-        { name: "generate-and-store-jsonl" },
-      );
+    const {
+      storageId,
+      filename,
+    }: { storageId: Id<"_storage">; filename: string } = await step.runAction(
+      internal.importing.generateAndStoreJsonL,
+      { mergedActivitiesStorageId, runId },
+      { name: "generate-and-store-jsonl" },
+    );
 
     // Update workflow record with final JSONL storage ID
     await step.runMutation(
@@ -327,7 +316,7 @@ export const websiteScrapeWorkflow = workflow.define({
     // Step 5d: Conditionally import to database if autoImport is enabled
     let importSummary: ImportSummary | undefined;
 
-    if (config.autoImport) {
+    if (wfConfig.autoImport) {
       console.log("Auto-import enabled, importing to database");
 
       importSummary = await step.runAction(
@@ -369,19 +358,8 @@ export const websiteScrapeWorkflow = workflow.define({
 export const startWebsiteScrapeWorkflow = mutation({
   args: {
     url: v.string(),
-    config: v.optional(
-      v.object({
-        maxDepth: v.optional(v.number()),
-        maxPages: v.optional(v.number()),
-        maxExtractions: v.optional(v.number()),
-        autoImport: v.optional(v.boolean()),
-        urgencyDefault: v.optional(
-          v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-        ),
-        tagsHint: v.optional(v.array(v.string())),
-        useMockScrape: v.optional(v.boolean()),
-      }),
-    ),
+    scrapeOptions: v.optional(v.object(scrapeOptions)),
+    workflowConfig: v.optional(v.object(workflowConfig)),
   },
   handler: async (ctx, args): Promise<string> => {
     const workflowId: string = await workflow.start(
@@ -390,7 +368,7 @@ export const startWebsiteScrapeWorkflow = mutation({
       args,
       {
         onComplete: internal.scrapeWorkflow.handleWorkflowComplete,
-        context: { autoImport: args.config?.autoImport ?? false },
+        context: { autoImport: args.workflowConfig?.autoImport ?? false },
       },
     );
 
@@ -438,26 +416,18 @@ export const handleWorkflowComplete = internalMutation({
       );
 
       // Mark workflow as failed
-      await ctx.scheduler.runAfter(
-        0,
-        internal.workflowMetadata.failWorkflow,
-        {
-          workflowId: args.workflowId as string,
-          error: args.result.error || "Unknown error",
-        },
-      );
+      await ctx.scheduler.runAfter(0, internal.workflowMetadata.failWorkflow, {
+        workflowId: args.workflowId as string,
+        error: args.result.error || "Unknown error",
+      });
     } else if (args.result.kind === "canceled") {
       console.log(`Workflow ${args.workflowId} was canceled`);
 
       // Mark workflow as failed
-      await ctx.scheduler.runAfter(
-        0,
-        internal.workflowMetadata.failWorkflow,
-        {
-          workflowId: args.workflowId as string,
-          error: "Workflow canceled",
-        },
-      );
+      await ctx.scheduler.runAfter(0, internal.workflowMetadata.failWorkflow, {
+        workflowId: args.workflowId as string,
+        error: "Workflow canceled",
+      });
     }
   },
 });

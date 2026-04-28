@@ -1,10 +1,14 @@
 "use node";
 
 import { internalAction } from "./_generated/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { env } from "./env";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { scrapeOptions } from "./schema";
+
+const scrapeOptionsValidator = v.object(scrapeOptions);
+type ScrapeOptions = Infer<typeof scrapeOptionsValidator>;
 
 // /**
 //  * Extraction prompt for LLM-based activity data extraction from web pages
@@ -5568,18 +5572,12 @@ interface FetchFoxResponse {
   artifacts?: unknown[];
 }
 
-const MAX_PAGES = 150;
-const MAX_DEPTH = 99;
-
 /**
  * Scrape a website using FetchFox's /scrape endpoint
  */
 async function scrapeFetchFox(
   url: string,
-  maxPages: number,
-  maxDepth: number,
-  maxExtractions: number,
-  tagsHint?: string[],
+  options: ScrapeOptions,
 ): Promise<RawActivity[]> {
   try {
     // Validate URL format
@@ -5605,7 +5603,7 @@ async function scrapeFetchFox(
       startDate: "Start date in ISO 8601 format",
       endDate: "End date in ISO 8601 format",
       tags: [
-        `Categories or tags for the activity, don't include anything related to the address. keep me more theme oriented. ${tagsHint ? `make sure you include these if suited: ${tagsHint.join(", ")}` : ""}`,
+        `Categories or tags for the activity, don't include anything related to the address. keep me more theme oriented. ${options.tagsHint ? `make sure you include these if suited: ${options.tagsHint.join(", ")}` : ""}`,
       ],
       imageURL: "URL of the primary image for this activity",
     };
@@ -5620,9 +5618,9 @@ async function scrapeFetchFox(
         pattern,
         // start_urls: [urlObj.origin],
         template,
-        max_visits: maxPages,
-        max_depth: maxDepth,
-        max_extracts: maxExtractions,
+        max_visits: options.maxCrawlVisit,
+        max_depth: options.maxDepth,
+        max_extracts: options.maxExtractions,
         content_transform: "slim_html",
       }),
     });
@@ -5636,6 +5634,23 @@ async function scrapeFetchFox(
 
     if (!data.results?.items) {
       console.log("[FetchFox] No items found in response");
+      return [];
+    }
+
+    if (!Array.isArray(data.results.items)) {
+      console.error(
+        "[FetchFox] Unexpected response shape — results.items is not an array",
+        {
+          itemsType: typeof data.results.items,
+          itemsKeys:
+            data.results.items && typeof data.results.items === "object"
+              ? Object.keys(data.results.items as object)
+              : undefined,
+          itemsSample: JSON.stringify(data.results.items).slice(0, 500),
+          resultsKeys: Object.keys(data.results),
+          metrics: data.metrics,
+        },
+      );
       return [];
     }
 
@@ -5669,10 +5684,7 @@ async function scrapeFetchFox(
 export const scrapeWebsite = internalAction({
   args: {
     url: v.string(),
-    maxDepth: v.optional(v.number()),
-    maxPages: v.optional(v.number()),
-    maxExtractions: v.optional(v.number()),
-    tagsHint: v.optional(v.array(v.string())),
+    scrapeOptions: scrapeOptionsValidator,
     useMockScrape: v.optional(v.boolean()),
   },
   handler: async (_ctx, args): Promise<RawActivity[]> => {
@@ -5691,21 +5703,19 @@ export const scrapeWebsite = internalAction({
       throw new Error(`Invalid URL format: ${args.url}`);
     }
 
-    const maxDepth = args.maxDepth || MAX_DEPTH;
-    const maxPages = args.maxPages || MAX_PAGES;
-    const maxExtractions = args.maxExtractions || MAX_PAGES;
+    const options: ScrapeOptions = {
+      ...args.scrapeOptions,
+      maxCrawlVisit: args.scrapeOptions.maxCrawlVisit ?? 150,
+      maxDepth: args.scrapeOptions.maxDepth ?? 3,
+      maxExtractions: args.scrapeOptions.maxExtractions ?? 150,
+    };
+
     console.log(`Starting scrape for URL: ${args.url}`);
-    console.table({ args });
+    console.table({ url: args.url, ...options });
 
     const results = await Promise.allSettled([
-      scrapeFetchFox(
-        args.url,
-        maxPages,
-        maxDepth,
-        maxExtractions,
-        args.tagsHint,
-      ),
-      // runFirecrawl(args.url, maxPages),
+      scrapeFetchFox(args.url, options),
+      // runFirecrawl(args.url, options),
     ]);
 
     // Extract results
@@ -5730,10 +5740,7 @@ export const scrapeWebsite = internalAction({
 export const scrapeWebsiteAndStore = internalAction({
   args: {
     url: v.string(),
-    maxDepth: v.optional(v.number()),
-    maxPages: v.optional(v.number()),
-    maxExtractions: v.optional(v.number()),
-    tagsHint: v.optional(v.array(v.string())),
+    scrapeOptions: scrapeOptionsValidator,
     useMockScrape: v.optional(v.boolean()),
     workflowId: v.string(),
   },
@@ -5741,10 +5748,7 @@ export const scrapeWebsiteAndStore = internalAction({
     // Scrape the website
     const rawActivities = await ctx.runAction(internal.scraping.scrapeWebsite, {
       url: args.url,
-      maxDepth: args.maxDepth,
-      maxPages: args.maxPages,
-      maxExtractions: args.maxExtractions,
-      tagsHint: args.tagsHint,
+      scrapeOptions: args.scrapeOptions,
       useMockScrape: args.useMockScrape,
     });
 

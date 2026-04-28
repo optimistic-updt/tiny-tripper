@@ -24,22 +24,17 @@ Parents in Melbourne
 
 ## TODO
 
-Need
+### Need
 
-- [ ] Filters [Home or away] [indoor or outdoor].
-- [ ] better search
-- [ ] BACKEND - hook in "what's on page" to constantly scrape information
+- figure out the change tracking / firecrawl
+- dedup much earlier
 
-Optional
+### Optional
 
 - [ ] add image generation for activities
 - [ ] ping the weather to better recommend
 - [ ] cleverly suggest tags when creating a activity
 - [ ] comes with option tailored to your preferences
-
-
-
-
 
 ## Tech
 

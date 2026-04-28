@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { RawActivity } from "./scraping";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { workflowConfig } from "./schema";
 
 export interface StandardizedActivity {
   name: string;
@@ -70,12 +71,7 @@ function normalizeTags(tags: string[] | undefined): string[] | undefined {
 export const standardizeActivities = internalMutation({
   args: {
     rawActivities: v.array(v.any()),
-    config: v.object({
-      urgencyDefault: v.optional(
-        v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-      ),
-      isPublic: v.optional(v.boolean()),
-    }),
+    workflowConfig: v.object(workflowConfig),
   },
   handler: async (_ctx, args): Promise<StandardizedActivity[]> => {
     const standardized: StandardizedActivity[] = [];
@@ -108,8 +104,8 @@ export const standardizeActivities = internalMutation({
       const activity: StandardizedActivity = {
         name: raw.name.trim(),
         description: raw.description?.trim(),
-        urgency: args.config.urgencyDefault || "medium",
-        isPublic: args.config.isPublic ?? true,
+        urgency: args.workflowConfig.urgencyDefault || "medium",
+        isPublic: true,
         location,
         startDate: validateDate(raw.startDate),
         endDate: validateDate(raw.endDate),

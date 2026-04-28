@@ -2,6 +2,7 @@ import { internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { scrapeOptions, workflowConfig } from "./schema";
 
 /**
  * Create a workflow metadata record to track progress and files
@@ -10,17 +11,8 @@ export const createWorkflowRecord = internalMutation({
   args: {
     workflowId: v.string(),
     url: v.string(),
-    config: v.object({
-      maxDepth: v.optional(v.number()),
-      maxPages: v.optional(v.number()),
-      maxExtractions: v.optional(v.number()),
-      autoImport: v.optional(v.boolean()),
-      urgencyDefault: v.optional(
-        v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-      ),
-      tagsHint: v.optional(v.array(v.string())),
-      useMockScrape: v.optional(v.boolean()),
-    }),
+    scrapeOptions: v.object(scrapeOptions),
+    workflowConfig: v.object(workflowConfig),
   },
   handler: async (ctx, args) => {
     const workflowRecordId = await ctx.db.insert("scrapeWorkflows", {
@@ -28,7 +20,7 @@ export const createWorkflowRecord = internalMutation({
       url: args.url,
       status: "running",
       startedAt: new Date().toISOString(),
-      config: args.config,
+      config: { ...args.scrapeOptions, ...args.workflowConfig },
       files: {},
     });
 

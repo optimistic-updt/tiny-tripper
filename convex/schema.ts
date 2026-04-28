@@ -1,6 +1,32 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+export const scrapeOptions = {
+  // what scraper to use
+  scraper: v.optional(v.union(v.literal("fetchfox"), v.literal("firecrawl"))),
+  // number of page to visit/crawl
+  maxCrawlVisit: v.optional(v.number()), // should default to 50
+  // Maximum depth from the root URL based on link-discovery hops, not the number of / segments in the URL. Each time a new URL is found on a page, it is assigned a depth one higher than the page it was discovered on. The root site and sitemapped pages have a discovery depth of 0. Pages at the max depth are still scraped, but links on them are not followed.
+  maxDepth: v.optional(v.number()), //should default to 3
+  // ??
+  maxExtractions: v.optional(v.number()),
+  // follow external links. if a crawler finds a link to another site, it will follow it
+  followExternalLinks: v.optional(v.boolean()),
+  // hint on the type of activities to expect, to help the LLM extraction. e.g. "outdoor", "family-friendly", "budget", etc.
+  tagsHint: v.optional(v.array(v.string())),
+};
+
+export const workflowConfig = {
+  // import scraped activities into the activities table once the workflow finishes
+  autoImport: v.optional(v.boolean()),
+  // urgency assigned to imported activities when the scrape doesn't provide one
+  urgencyDefault: v.optional(
+    v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+  ),
+  // skip the real scraper and return mock data — for development/testing
+  useMockScrape: v.optional(v.boolean()),
+};
+
 export default defineSchema({
   activities: defineTable({
     name: v.string(),
@@ -51,15 +77,8 @@ export default defineSchema({
     startedAt: v.string(),
     completedAt: v.optional(v.string()),
     config: v.object({
-      maxDepth: v.optional(v.number()),
-      maxPages: v.optional(v.number()),
-      maxExtractions: v.optional(v.number()),
-      autoImport: v.optional(v.boolean()),
-      urgencyDefault: v.optional(
-        v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-      ),
-      tagsHint: v.optional(v.array(v.string())),
-      useMockScrape: v.optional(v.boolean()),
+      ...scrapeOptions,
+      ...workflowConfig,
     }),
     // Storage file IDs for intermediate and final data
     files: v.object({
@@ -135,4 +154,34 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_and_activityId", ["userId", "activityId"]),
+
+  scrapingSources: defineTable({
+    url: v.string(),
+    name: v.optional(v.string()),
+    type: v.union(
+      v.literal("website"),
+      v.literal("social_media"),
+      v.literal("other"),
+    ),
+    interval: v.union(
+      v.literal("daily"),
+      v.literal("weekly"),
+      v.literal("monthly"),
+      v.literal("manual"),
+    ),
+    on: v.optional(v.number()), // 0 monday, 1 tuesday, ..., 6 sunday OR 0 january, 1 february, ..., 11 december
+    createdAt: v.number(),
+    active: v.optional(v.boolean()),
+    lastCheckedAt: v.optional(v.number()),
+    lastChangeAt: v.optional(v.number()),
+    lastChangePreviousScrapeAt: v.optional(v.string()),
+    scrapeConfig: v.optional(
+      v.object({
+        ...scrapeOptions,
+        urgencyDefault: v.optional(
+          v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+        ),
+      }),
+    ),
+  }).index("by_active_lastCheckedAt", ["active", "lastCheckedAt"]),
 });
