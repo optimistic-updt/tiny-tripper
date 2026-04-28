@@ -37,6 +37,34 @@ const RADIUS_OPTIONS = [
 
 type Recommendation = Doc<"activities"> & { score: number };
 
+type Filters = {
+  only: { atHome: boolean; rainproof: boolean; outdoor: boolean };
+  exclude: { food: boolean };
+};
+
+type StoredPrefs = {
+  filters: Filters;
+  locationEnabled: boolean;
+  searchRadius: number;
+};
+
+const STORAGE_KEY = "play-prefs-v1";
+
+const DEFAULT_FILTERS: Filters = {
+  only: { atHome: false, rainproof: false, outdoor: false },
+  exclude: { food: false },
+};
+
+function loadPrefs(): Partial<StoredPrefs> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Partial<StoredPrefs>) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function PlayPage() {
   const { isAuthenticated } = useConvexAuth();
   const [recommendationHistory, setRecommendationHistory] = useState<
@@ -49,9 +77,12 @@ export default function PlayPage() {
   //   restricted to activities matching at least one active narrow (union).
   // - `exclude.*`: subtractive filters, default OFF (category included).
   //   Toggling one on removes that category from results.
-  const [filters, setFilters] = useState({
-    only: { atHome: false, rainproof: false, outdoor: false },
-    exclude: { food: false },
+  const [filters, setFilters] = useState<Filters>(() => {
+    const saved = loadPrefs().filters;
+    return {
+      only: { ...DEFAULT_FILTERS.only, ...(saved?.only ?? {}) },
+      exclude: { ...DEFAULT_FILTERS.exclude, ...(saved?.exclude ?? {}) },
+    };
   });
   const [randomSeed, setRandomSeed] = useState(() =>
     Math.floor(Math.random() * 1000000),
@@ -67,7 +98,9 @@ export default function PlayPage() {
     filters.only.atHome && !filters.only.rainproof && !filters.only.outdoor;
 
   // Location state
-  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [locationEnabled, setLocationEnabled] = useState<boolean>(
+    () => loadPrefs().locationEnabled ?? false,
+  );
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -75,34 +108,26 @@ export default function PlayPage() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  const [searchRadius, setSearchRadius] = useState(5000);
+  const [searchRadius, setSearchRadius] = useState<number>(
+    () => loadPrefs().searchRadius ?? 5000,
+  );
 
-  // Load filters from sessionStorage on mount. Key is bumped to v2 because
-  // the filter shape changed semantics — old state from the previous model
-  // must not be loaded into the new model.
   useEffect(() => {
-    const savedFilters = sessionStorage.getItem("activity-filters-v2");
-    if (savedFilters) {
-      try {
-        const parsed = JSON.parse(savedFilters);
-        setFilters((prev) => ({
-          only: { ...prev.only, ...(parsed.only ?? {}) },
-          exclude: { ...prev.exclude, ...(parsed.exclude ?? {}) },
-        }));
-      } catch (error) {
-        console.error("Failed to parse saved filters:", error);
-      }
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ filters, locationEnabled, searchRadius }),
+      );
+    } catch {
+      // Best-effort: ignore quota errors so the app keeps working.
     }
-  }, []);
+  }, [filters, locationEnabled, searchRadius]);
 
-  // Save filters to sessionStorage when they change
   useEffect(() => {
-    sessionStorage.setItem("activity-filters-v2", JSON.stringify(filters));
-    // Reset recommendation history and excludeIds when filters change
     setRecommendationHistory([]);
     setCurrentIndex(-1);
     setExcludeIds([]);
-    // Generate new random seed
     setRandomSeed(Math.floor(Math.random() * 1000000));
   }, [filters]);
 
