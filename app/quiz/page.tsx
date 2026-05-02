@@ -13,6 +13,7 @@ import { BinaryQuestion } from "@/components/quiz/BinaryQuestion";
 import { TextQuestion } from "@/components/quiz/TextQuestion";
 import { SelectQuestion } from "@/components/quiz/SelectQuestion";
 import { ArrowLeft } from "lucide-react";
+import { otel } from "@/lib/otel";
 
 // Quiz configuration
 const SCORING_QUESTIONS = [
@@ -251,6 +252,7 @@ export default function QuizPage() {
       router.push(ROUTES.build.quizResults(result.responseId));
     } catch (error) {
       console.error("Failed to submit quiz:", error);
+      otel.captureException(error, { context: "quiz_submit" });
       posthog?.capture("quiz_submission_failed", { error: String(error) });
     } finally {
       setIsSubmitting(false);

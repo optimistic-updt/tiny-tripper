@@ -6,6 +6,8 @@ import OpenAI from "openai";
 import { Id, Doc } from "./_generated/dataModel";
 import { GeospatialIndex } from "@convex-dev/geospatial";
 import { components } from "./_generated/api";
+import { otelServer } from "./otelServer";
+import type { ActionCtx } from "./_generated/server";
 
 const geospatial = new GeospatialIndex<
   Id<"activities">,
@@ -43,7 +45,7 @@ const OpenAIClient = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
 });
 
-const generateEmbedding = async (text: string) => {
+const generateEmbedding = async (ctx: ActionCtx, text: string) => {
   try {
     const embedding = await OpenAIClient.embeddings.create({
       model: "text-embedding-3-small",
@@ -52,9 +54,10 @@ const generateEmbedding = async (text: string) => {
     });
 
     return embedding.data[0].embedding;
-
-    // TODO here
-  } catch {
+  } catch (error) {
+    await otelServer.captureException(ctx, error, {
+      context: "generate_embedding",
+    });
     return [];
   }
 };
@@ -175,7 +178,7 @@ export const createActivity = action({
       ...(args.tags || []),
     ].join(" ");
 
-    const embedding = await generateEmbedding(searchableText);
+    const embedding = await generateEmbedding(ctx, searchableText);
 
     const doc = {
       ...args,
@@ -275,7 +278,7 @@ export const searchActivities = action({
     //   return await ctx.runQuery(api.activities.listActivities);
     // }
 
-    const embedding = await generateEmbedding(args.searchTerm);
+    const embedding = await generateEmbedding(ctx, args.searchTerm);
 
     const results = await ctx.vectorSearch("activities", "by_embedding", {
       vector: embedding,

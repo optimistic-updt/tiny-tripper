@@ -1,6 +1,7 @@
 import { internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import { otelServer } from "./otelServer";
 import { internal } from "./_generated/api";
 import { scrapeOptions, workflowConfig } from "./schema";
 
@@ -190,6 +191,11 @@ export const cleanupWorkflowFiles = internalAction({
         console.log(`Deleted storage file: ${storageId}`);
       } catch (error) {
         console.warn(`Failed to delete storage file ${storageId}:`, error);
+        await otelServer.captureException(ctx, error, {
+          context: "workflow_cleanup_storage_delete",
+          storage_id: storageId,
+          workflow_id: args.workflowId,
+        });
       }
     }
 

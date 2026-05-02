@@ -26,6 +26,7 @@ import ImageUpload, { type ImageUploadHandle } from "@/components/ImageUpload";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/app/routes";
 import type { Id } from "@/convex/_generated/dataModel";
+import { otel } from "@/lib/otel";
 
 type PlaceLike = {
   name?: string;
@@ -169,7 +170,8 @@ export default function CreateActivityPage() {
               result.formatted_address,
             ),
           );
-        } catch {
+        } catch (error) {
+          otel.captureException(error, { context: "create_location_lookup" });
           setLocationError("Failed to look up your location");
         } finally {
           setLocationLoading(false);
@@ -218,7 +220,8 @@ export default function CreateActivityPage() {
       });
       reset();
       router.push(ROUTES.activities);
-    } catch {
+    } catch (error) {
+      otel.captureException(error, { context: "create_activity_submit" });
       setSubmitStatus({
         type: "error",
         message: "Failed to create activity. Please try again.",

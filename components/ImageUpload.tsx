@@ -7,6 +7,7 @@ import { Button, Flex, Text, Box, Callout } from "@radix-ui/themes";
 import { Camera, Upload, X, AlertCircle } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { compressImage } from "@/lib/compressImage";
+import { otel } from "@/lib/otel";
 
 interface ImageUploadProps {
   value?: Id<"_storage">;
@@ -62,6 +63,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
           contentType = "image/webp";
         } catch (err) {
           console.error("Image compression failed, uploading raw file:", err);
+          otel.captureException(err, { context: "image_compression" });
         }
 
         // Upload file
@@ -76,6 +78,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
         onPendingImageChange?.(false);
       } catch (error) {
         console.error("Upload failed:", error);
+        otel.captureException(error, { context: "image_upload" });
         alert("Failed to upload image. Please try again.");
       } finally {
         setIsUploading(false);

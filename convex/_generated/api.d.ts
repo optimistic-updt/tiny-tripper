@@ -16,6 +16,7 @@ import type * as geocoding from "../geocoding.js";
 import type * as imageProcessing from "../imageProcessing.js";
 import type * as importing from "../importing.js";
 import type * as migrations from "../migrations.js";
+import type * as otelServer from "../otelServer.js";
 import type * as quiz from "../quiz.js";
 import type * as scrapeWorkflow from "../scrapeWorkflow.js";
 import type * as scraping from "../scraping.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   imageProcessing: typeof imageProcessing;
   importing: typeof importing;
   migrations: typeof migrations;
+  otelServer: typeof otelServer;
   quiz: typeof quiz;
   scrapeWorkflow: typeof scrapeWorkflow;
   scraping: typeof scraping;

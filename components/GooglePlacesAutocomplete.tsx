@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { TextField } from "@radix-ui/themes";
 import { env } from "@/env";
+import { otel } from "@/lib/otel";
 
 const apiKey = env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -109,6 +110,7 @@ export default function GooglePlacesAutocomplete({
         }
       } catch (error) {
         console.error("Error loading Google Places API:", error);
+        otel.captureException(error, { context: "google_places_init" });
       }
     };
 

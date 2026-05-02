@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button, Flex, Heading, Text, TextField, Box } from "@radix-ui/themes";
 import { useForm } from "react-hook-form";
+import { otel } from "@/lib/otel";
 
 interface ContactData {
   name: string;
@@ -43,6 +44,7 @@ export function ContactCapture({ onSubmit }: ContactCaptureProps) {
         });
       } catch (error) {
         console.error("Location detection failed:", error);
+        otel.captureException(error, { context: "ip_geolocation" });
       } finally {
         setIsDetectingLocation(false);
       }

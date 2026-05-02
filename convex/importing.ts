@@ -1,6 +1,7 @@
 import { internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { otelServer } from "./otelServer";
 import type { Doc, Id } from "./_generated/dataModel";
 
 interface ImportSummary {
@@ -76,6 +77,10 @@ export const bulkImportActivities = internalMutation({
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         console.error(`Failed to import activity ${activity.name}:`, error);
+        await otelServer.captureException(ctx, error, {
+          context: "import_activity",
+          activity_name: activity.name,
+        });
         summary.failed++;
         summary.errors.push(
           `Failed to import ${activity.name}: ${errorMessage}`,

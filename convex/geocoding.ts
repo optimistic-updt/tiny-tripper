@@ -6,6 +6,8 @@ import type { StandardizedActivity } from "./formatting";
 import { env } from "./env";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { otelServer } from "./otelServer";
+import type { ActionCtx } from "./_generated/server";
 
 interface GeocodeResult {
   latitude: number;
@@ -75,7 +77,10 @@ function parseAddressComponents(
 /**
  * Geocode a single address using Google Maps Geocoding API
  */
-async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
+async function geocodeAddress(
+  ctx: ActionCtx,
+  address: string,
+): Promise<GeocodeResult | null> {
   const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
   url.searchParams.set("address", address);
   url.searchParams.set("key", env.GOOGLE_MAPS_API_KEY);
@@ -108,6 +113,10 @@ async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
     };
   } catch (error) {
     console.error(`Failed to geocode address: ${address}`, error);
+    await otelServer.captureException(ctx, error, {
+      context: "geocode_address",
+      address,
+    });
     return null;
   }
 }
@@ -120,7 +129,7 @@ export const geocodeAddresses = internalAction({
   args: {
     activities: v.array(v.any()),
   },
-  handler: async (_ctx, args): Promise<Record<number, GeocodeResult>> => {
+  handler: async (ctx, args): Promise<Record<number, GeocodeResult>> => {
     const activities = args.activities as StandardizedActivity[];
     const geocodedMap: Record<number, GeocodeResult> = {};
 
@@ -140,6 +149,7 @@ export const geocodeAddresses = internalAction({
         );
 
         const geocoded = await geocodeAddress(
+          ctx,
           activity.location.formattedAddress,
         );
 
@@ -161,6 +171,11 @@ export const geocodeAddresses = internalAction({
           `Failed to geocode activity ${i} (${activity.name}):`,
           error,
         );
+        await otelServer.captureException(ctx, error, {
+          context: "geocode_activity_loop",
+          activity_index: i,
+          activity_name: activity.name,
+        });
         // Continue processing other addresses
       }
     }

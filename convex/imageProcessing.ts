@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import type { StandardizedActivity } from "./formatting";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { otelServer } from "./otelServer";
 
 const TARGET_WIDTH = 1200;
 const TARGET_HEIGHT = 630;
@@ -91,6 +92,12 @@ export const processImages = internalAction({
           error,
         );
         console.error(`Image URL was: ${activity.imageURL}`);
+        await otelServer.captureException(ctx, error, {
+          context: "process_image",
+          activity_index: i,
+          activity_name: activity.name,
+          image_url: activity.imageURL,
+        });
         // Continue processing other images
       }
     }

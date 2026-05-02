@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
+import { otel } from "@/lib/otel";
 
 interface SearchBarProps {
   onSearchResults: (results: Doc<"activities">[]) => void;
@@ -36,6 +37,7 @@ export function SearchBar({
         onSearchResults(results);
       } catch (error) {
         console.error("Search error:", error);
+        otel.captureException(error, { context: "search_activities" });
         onSearchCleared();
       } finally {
         setIsSearching(false);

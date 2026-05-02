@@ -23,6 +23,7 @@ import { EyeOff, MapPin, SlidersHorizontal } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import styles from "./3d_button.module.css";
+import { otel } from "@/lib/otel";
 
 // Radius options in meters
 const RADIUS_OPTIONS = [
@@ -60,7 +61,8 @@ function loadPrefs(): Partial<StoredPrefs> {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as Partial<StoredPrefs>) : {};
-  } catch {
+  } catch (error) {
+    otel.captureException(error, { context: "play_load_prefs" });
     return {};
   }
 }
@@ -119,8 +121,8 @@ export default function PlayPage() {
         STORAGE_KEY,
         JSON.stringify({ filters, locationEnabled, searchRadius }),
       );
-    } catch {
-      // Best-effort: ignore quota errors so the app keeps working.
+    } catch (error) {
+      otel.captureException(error, { context: "play_save_prefs" });
     }
   }, [filters, locationEnabled, searchRadius]);
 
