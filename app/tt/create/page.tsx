@@ -103,7 +103,7 @@ export default function CreateActivityPage() {
       await createActivity({
         name: data.name,
         description: data.description || undefined,
-        urgency: isSignedIn ? (data.urgency || "medium") : undefined,
+        urgency: isSignedIn ? data.urgency || "medium" : undefined,
         location: data.location || undefined,
         endDate: data.endDate || undefined,
         isPublic: isSignedIn ? (data.isPublic ?? true) : true,
@@ -151,6 +151,20 @@ export default function CreateActivityPage() {
           <Flex direction="column" gap="4">
             <div>
               <Text size="2" weight="medium" mb="2">
+                Image
+              </Text>
+              <ImageUpload
+                ref={imageUploadRef}
+                value={imageId}
+                onChange={(storageId) => setValue("imageId", storageId)}
+              />
+              <Text size="1" color="gray" mt="1">
+                Add an image to your activity (optional)
+              </Text>
+            </div>
+
+            <div>
+              <Text size="2" weight="medium" mb="2">
                 Name *
               </Text>
               <TextField.Root
@@ -174,7 +188,11 @@ export default function CreateActivityPage() {
                   onCheckedChange={(checked) => setValue("isPublic", checked)}
                   disabled={!isSignedIn}
                 />
-                <Text size="2" weight="medium" color={!isSignedIn ? "gray" : undefined}>
+                <Text
+                  size="2"
+                  weight="medium"
+                  color={!isSignedIn ? "gray" : undefined}
+                >
                   {isPublic ? "Public Activity" : "Private Activity"}
                 </Text>
               </Flex>
@@ -205,7 +223,10 @@ export default function CreateActivityPage() {
               />
             </div>
 
-            <Flex direction={"column"} style={{ opacity: !isSignedIn ? 0.5 : 1 }}>
+            <Flex
+              direction={"column"}
+              style={{ opacity: !isSignedIn ? 0.5 : 1 }}
+            >
               <Flex align="center" gap="2" mb="2">
                 {!isSignedIn && <Lock size={14} className="text-gray-400" />}
                 <Text size="2" weight="medium">
@@ -221,7 +242,9 @@ export default function CreateActivityPage() {
                 }
               >
                 <SegmentedControl.Item value="low">Low</SegmentedControl.Item>
-                <SegmentedControl.Item value="medium">Medium</SegmentedControl.Item>
+                <SegmentedControl.Item value="medium">
+                  Medium
+                </SegmentedControl.Item>
                 <SegmentedControl.Item value="high">High</SegmentedControl.Item>
               </SegmentedControl.Root>
               <Text size="1" color="gray" mt="1">
@@ -292,21 +315,6 @@ export default function CreateActivityPage() {
                 existing tags or create new ones.
               </Text>
             </div>
-
-            <div>
-              <Text size="2" weight="medium" mb="2">
-                Image
-              </Text>
-              <ImageUpload
-                ref={imageUploadRef}
-                value={imageId}
-                onChange={(storageId) => setValue("imageId", storageId)}
-              />
-              <Text size="1" color="gray" mt="1">
-                Add an image to your activity (optional)
-              </Text>
-            </div>
-
             <div>
               <Text size="2" weight="medium" mb="2">
                 End Date

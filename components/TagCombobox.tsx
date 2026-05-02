@@ -3,15 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import {
-  TextField,
-  Button,
-  Flex,
-  Badge,
-  Box,
-  Text,
-  ScrollArea,
-} from "@radix-ui/themes";
+import { Button, Flex, Badge, Box, Text, ScrollArea } from "@radix-ui/themes";
 import { X, Plus } from "lucide-react";
 
 interface TagComboboxProps {
@@ -38,13 +30,12 @@ export default function TagCombobox({
   });
 
   // Filter out already selected tags and limit suggestions
-  const filteredSuggestions = suggestions?.filter(
-    (tag) => !value.includes(tag.name)
-  ) || [];
+  const filteredSuggestions =
+    suggestions?.filter((tag) => !value.includes(tag.name)) || [];
 
   // Check if the current input exactly matches an existing suggestion
   const exactMatch = filteredSuggestions.find(
-    (tag) => tag.name.toLowerCase() === inputValue.toLowerCase()
+    (tag) => tag.name.toLowerCase() === inputValue.toLowerCase(),
   );
 
   useEffect(() => {
@@ -91,7 +82,7 @@ export default function TagCombobox({
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setHighlightedIndex((prev) =>
-        Math.min(prev + 1, filteredSuggestions.length - 1)
+        Math.min(prev + 1, filteredSuggestions.length - 1),
       );
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
@@ -112,7 +103,10 @@ export default function TagCombobox({
 
     // Handle comma-separated input
     if (newValue.includes(",")) {
-      const tags = newValue.split(",").map(tag => tag.trim()).filter(Boolean);
+      const tags = newValue
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
       const lastTag = tags.pop() || "";
 
       // Add all complete tags
@@ -145,7 +139,12 @@ export default function TagCombobox({
               <Button
                 variant="ghost"
                 size="1"
-                style={{ marginLeft: "4px", padding: "0", minWidth: "16px", height: "16px" }}
+                style={{
+                  marginLeft: "4px",
+                  padding: "0",
+                  minWidth: "16px",
+                  height: "16px",
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   removeTag(tag);
@@ -155,7 +154,7 @@ export default function TagCombobox({
               </Button>
             </Badge>
           ))}
-          <TextField.Root
+          <input
             ref={inputRef}
             value={inputValue}
             onChange={handleInputChange}
@@ -168,62 +167,80 @@ export default function TagCombobox({
               flexGrow: 1,
               minWidth: "120px",
               backgroundColor: "transparent",
+              font: "inherit",
+              color: "inherit",
+              padding: 0,
             }}
           />
         </Flex>
       </Box>
 
-      {showSuggestions && (filteredSuggestions.length > 0 || (inputValue.trim() && !exactMatch)) && (
-        <Box
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            backgroundColor: "var(--color-panel)",
-            border: "1px solid var(--gray-a7)",
-            borderRadius: "var(--radius-2)",
-            boxShadow: "var(--shadow-4)",
-            zIndex: 1000,
-            maxHeight: "200px",
-          }}
-        >
-          <ScrollArea>
-            {filteredSuggestions.map((tag, index) => (
-              <Box
-                key={tag._id}
-                p="2"
-                style={{
-                  cursor: "pointer",
-                  backgroundColor: highlightedIndex === index ? "var(--accent-a3)" : "transparent",
-                }}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                onClick={() => addTag(tag.name)}
-              >
-                <Text size="2">{tag.name}</Text>
-              </Box>
-            ))}
+      {showSuggestions &&
+        (filteredSuggestions.length > 0 ||
+          (inputValue.trim() && !exactMatch)) && (
+          <Box
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              backgroundColor: "var(--foreground)",
+              border: "1px solid var(--gray-a7)",
+              borderRadius: "var(--radius-2)",
+              boxShadow: "var(--shadow-4)",
+              zIndex: 1000,
+              maxHeight: "200px",
+            }}
+          >
+            <ScrollArea>
+              {filteredSuggestions.map((tag, index) => (
+                <Box
+                  key={tag._id}
+                  p="2"
+                  style={{
+                    cursor: "pointer",
+                    backgroundColor:
+                      highlightedIndex === index
+                        ? "var(--accent-a3)"
+                        : "transparent",
+                  }}
+                  onMouseEnter={() => setHighlightedIndex(index)}
+                  onClick={() => addTag(tag.name)}
+                >
+                  <Text size="2">{tag.name}</Text>
+                </Box>
+              ))}
 
-            {inputValue.trim() && !exactMatch && (
-              <Box
-                p="2"
-                style={{
-                  cursor: "pointer",
-                  backgroundColor: highlightedIndex === filteredSuggestions.length ? "var(--accent-a3)" : "transparent",
-                  borderTop: filteredSuggestions.length > 0 ? "1px solid var(--gray-a5)" : "none",
-                }}
-                onMouseEnter={() => setHighlightedIndex(filteredSuggestions.length)}
-                onClick={() => addTag(inputValue.trim())}
-              >
-                <Flex align="center" gap="2">
-                  <Plus size={12} />
-                  <Text size="2">Create &ldquo;{inputValue.trim()}&rdquo;</Text>
-                </Flex>
-              </Box>
-            )}
-          </ScrollArea>
-        </Box>
-      )}
+              {inputValue.trim() && !exactMatch && (
+                <Box
+                  p="2"
+                  style={{
+                    cursor: "pointer",
+                    backgroundColor:
+                      highlightedIndex === filteredSuggestions.length
+                        ? "var(--accent-a3)"
+                        : "transparent",
+                    borderTop:
+                      filteredSuggestions.length > 0
+                        ? "1px solid var(--gray-a5)"
+                        : "none",
+                  }}
+                  onMouseEnter={() =>
+                    setHighlightedIndex(filteredSuggestions.length)
+                  }
+                  onClick={() => addTag(inputValue.trim())}
+                >
+                  <Flex align="center" gap="2">
+                    <Plus size={12} />
+                    <Text size="2">
+                      Create &ldquo;{inputValue.trim()}&rdquo;
+                    </Text>
+                  </Flex>
+                </Box>
+              )}
+            </ScrollArea>
+          </Box>
+        )}
     </div>
   );
 }
