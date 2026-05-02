@@ -16,14 +16,47 @@ import {
   SegmentedControl,
   Box,
 } from "@radix-ui/themes";
-import { CheckCircle, AlertTriangle, Lock } from "lucide-react";
+import { CheckCircle, AlertTriangle, Lock, MapPin } from "lucide-react";
 import { useAuth, SignInButton } from "@clerk/nextjs";
+import { Loader } from "@googlemaps/js-api-loader";
+import { env } from "@/env";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 import TagCombobox from "@/components/TagCombobox";
 import ImageUpload, { type ImageUploadHandle } from "@/components/ImageUpload";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/app/routes";
 import type { Id } from "@/convex/_generated/dataModel";
+
+type PlaceLike = {
+  name?: string;
+  place_id?: string;
+  formatted_address?: string;
+  geometry?: { location?: { lat(): number; lng(): number } };
+  address_components?: google.maps.GeocoderAddressComponent[];
+};
+
+function placeToLocation(place: PlaceLike, fallbackName: string) {
+  const addressComponents = place.address_components || [];
+  const getComponent = (type: string) =>
+    addressComponents.find((c) => c.types.includes(type))?.long_name;
+
+  return {
+    name: place.name || fallbackName,
+    placeId: place.place_id ?? "",
+    formattedAddress: place.formatted_address ?? fallbackName,
+    latitude: place.geometry?.location?.lat() ?? undefined,
+    longitude: place.geometry?.location?.lng() ?? undefined,
+    street_address:
+      getComponent("street_number") && getComponent("route")
+        ? `${getComponent("street_number")} ${getComponent("route")}`
+        : getComponent("route"),
+    city: getComponent("locality") || getComponent("sublocality"),
+    state_province: getComponent("administrative_area_level_1"),
+    postal_code: getComponent("postal_code"),
+    country_code: addressComponents.find((c) => c.types.includes("country"))
+      ?.short_name,
+  };
+}
 
 type ActivityFormData = {
   name: string;
@@ -57,6 +90,8 @@ export default function CreateActivityPage() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const router = useRouter();
   const imageUploadRef = useRef<ImageUploadHandle>(null);
 
@@ -81,6 +116,72 @@ export default function CreateActivityPage() {
   const inHome = watch("inHome");
   const tags = watch("tags") || [];
   const imageId = watch("imageId");
+
+  const handleUseCurrentLocation = () => {
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const loader = new Loader({
+            apiKey: env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+            version: "weekly",
+            libraries: ["places"],
+          });
+          const { Geocoder } = (await loader.importLibrary(
+            "geocoding",
+          )) as google.maps.GeocodingLibrary;
+          const geocoder = new Geocoder();
+          const { results } = await geocoder.geocode({
+            location: {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            },
+          });
+
+          if (!results || results.length === 0) {
+            setLocationError("Couldn't find an address for your location");
+            return;
+          }
+
+          const result = results[0];
+          setValue(
+            "location",
+            placeToLocation(
+              {
+                place_id: result.place_id,
+                formatted_address: result.formatted_address,
+                address_components: result.address_components,
+                geometry: {
+                  location: {
+                    lat: () => pos.coords.latitude,
+                    lng: () => pos.coords.longitude,
+                  },
+                },
+              },
+              result.formatted_address,
+            ),
+          );
+        } catch {
+          setLocationError("Failed to look up your location");
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      (err) => {
+        setLocationError(err.message);
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
+  };
 
   const onSubmit = async (data: ActivityFormData) => {
     setIsSubmitting(true);
@@ -268,37 +369,29 @@ export default function CreateActivityPage() {
                 value={watch("location")?.name || ""}
                 onChange={(value, place) => {
                   if (place) {
-                    const addressComponents = place.address_components || [];
-                    const getComponent = (type: string) =>
-                      addressComponents.find((c) => c.types.includes(type))
-                        ?.long_name;
-
-                    setValue("location", {
-                      name: place.name || value,
-                      placeId: place.place_id,
-                      formattedAddress: place.formatted_address,
-                      latitude: place?.geometry?.location?.lat() || undefined,
-                      longitude: place?.geometry?.location?.lng() || undefined,
-                      street_address:
-                        getComponent("street_number") && getComponent("route")
-                          ? `${getComponent("street_number")} ${getComponent("route")}`
-                          : getComponent("route"),
-                      city:
-                        getComponent("locality") || getComponent("sublocality"),
-                      state_province: getComponent(
-                        "administrative_area_level_1",
-                      ),
-                      postal_code: getComponent("postal_code"),
-                      country_code: addressComponents.find((c) =>
-                        c.types.includes("country"),
-                      )?.short_name,
-                    });
+                    setValue("location", placeToLocation(place, value));
                   } else {
                     setValue("location.name", value);
                   }
                 }}
                 placeholder="Enter location"
               />
+              <Flex align="center" gap="2" mt="2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="1"
+                  onClick={handleUseCurrentLocation}
+                  loading={locationLoading}
+                >
+                  <MapPin size={12} /> Use my current location
+                </Button>
+                {locationError && (
+                  <Text size="1" color="red">
+                    {locationError}
+                  </Text>
+                )}
+              </Flex>
             </div>
 
             <div>
