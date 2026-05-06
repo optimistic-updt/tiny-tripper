@@ -55,6 +55,7 @@ export interface RawActivity {
   endDate?: string;
   tags?: string[];
   imageURL?: string;
+  sourceUrl?: string;
 }
 
 export const MOCK_ACTIVITIES_2: RawActivity[] = [
@@ -5738,6 +5739,7 @@ async function scrapeFetchFox(
       endDate: item.endDate,
       tags: item.tags,
       imageURL: item.imageURL,
+      sourceUrl: item._url,
     }));
 
     console.log(`[FetchFox] Extracted ${activities.length} activities`);
@@ -5823,6 +5825,11 @@ async function scrapeFirecrawl(
         continue;
       }
 
+      const metadata = doc.metadata as
+        | { sourceURL?: string; url?: string }
+        | undefined;
+      const sourceUrl = metadata?.sourceURL ?? metadata?.url;
+
       extracted.push({
         name: json.name,
         description: json.description,
@@ -5831,6 +5838,7 @@ async function scrapeFirecrawl(
         endDate: json.endDate,
         tags: json.tags,
         imageURL: json.imageURL,
+        sourceUrl,
       });
     }
 
@@ -5852,6 +5860,7 @@ async function scrapeFirecrawl(
               ? existing.tags
               : activity.tags,
           imageURL: existing.imageURL ?? activity.imageURL,
+          sourceUrl: existing.sourceUrl ?? activity.sourceUrl,
         };
       }
       return acc;

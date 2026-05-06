@@ -24,6 +24,7 @@ export interface StandardizedActivity {
   endDate?: string;
   tags?: string[];
   imageURL?: string;
+  sourceUrl?: string;
   // embedding and imageId to be added in later steps
 }
 
@@ -111,6 +112,7 @@ export const standardizeActivities = internalMutation({
         endDate: validateDate(raw.endDate),
         tags: normalizeTags(raw.tags),
         imageURL: raw.imageURL,
+        sourceUrl: raw.sourceUrl,
       };
 
       standardized.push(activity);
@@ -170,6 +172,7 @@ export const mergeActivityData = internalMutation({
           startDate: activity.startDate,
           endDate: activity.endDate,
           tags: activity.tags,
+          sourceUrl: activity.sourceUrl,
         };
 
       // Merge image storage ID

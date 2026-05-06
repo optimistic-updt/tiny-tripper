@@ -69,6 +69,7 @@ export const bulkImportActivities = internalMutation({
           tags: activity.tags,
           embedding: activity.embedding,
           imageId: activity.imageId,
+          sourceUrl: activity.sourceUrl,
         });
 
         console.log(`Successfully imported activity: ${activity.name}`);

@@ -81,6 +81,7 @@ type ActivityFormData = {
   inHome?: boolean;
   tags?: string[];
   imageId?: Id<"_storage">;
+  sourceUrl?: string;
 };
 
 export default function CreateActivityPage() {
@@ -212,6 +213,7 @@ export default function CreateActivityPage() {
         isPublic: isSignedIn ? (data.isPublic ?? true) : true,
         tags: tags.length > 0 ? tags : undefined,
         imageId: data.imageId || undefined,
+        sourceUrl: data.sourceUrl?.trim() || undefined,
       });
 
       setSubmitStatus({
@@ -421,6 +423,21 @@ export default function CreateActivityPage() {
                 type="datetime-local"
                 size="3"
               />
+            </div>
+
+            <div>
+              <Text size="2" weight="medium" mb="2">
+                Source URL
+              </Text>
+              <TextField.Root
+                {...register("sourceUrl")}
+                type="url"
+                placeholder="https://…"
+                size="3"
+              />
+              <Text size="1" color="gray" mt="1">
+                Optional — link to the page this activity is from.
+              </Text>
             </div>
 
             <div>

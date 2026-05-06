@@ -98,6 +98,7 @@ export const createActivityDocument = internalMutation({
     tags: v.optional(v.array(v.string())),
     embedding: v.optional(v.array(v.float64())),
     imageId: v.optional(v.id("_storage")),
+    sourceUrl: v.optional(v.string()),
   },
 
   handler: async (ctx, args) => {
@@ -122,6 +123,7 @@ export const createActivityDocument = internalMutation({
       tags: normalizedTags,
       embedding: args.embedding,
       imageId: args.imageId,
+      sourceUrl: args.sourceUrl,
     });
 
     if (args.location?.latitude && args.location?.longitude) {
@@ -168,6 +170,7 @@ export const createActivity = action({
     isPublic: v.optional(v.boolean()),
     tags: v.optional(v.array(v.string())),
     imageId: v.optional(v.id("_storage")),
+    sourceUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const searchableText = [

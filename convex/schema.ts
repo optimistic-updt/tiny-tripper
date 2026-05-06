@@ -54,6 +54,7 @@ export default defineSchema({
     tags: v.optional(v.array(v.string())),
     embedding: v.optional(v.array(v.float64())),
     imageId: v.optional(v.id("_storage")),
+    sourceUrl: v.optional(v.string()),
   })
     .index("by_name", ["name"])
     .vectorIndex("by_embedding", {
