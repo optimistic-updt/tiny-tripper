@@ -377,6 +377,42 @@ export const startWebsiteScrapeWorkflow = mutation({
 });
 
 /**
+ * Run the scrape workflow against a single URL, with no crawling/link-following.
+ */
+export const startSingleScrape = mutation({
+  args: {
+    url: v.string(),
+    scraper: v.optional(scrapeOptions.scraper),
+    tagsHint: v.optional(scrapeOptions.tagsHint),
+    workflowConfig: v.optional(v.object(workflowConfig)),
+  },
+  handler: async (ctx, args): Promise<string> => {
+    const workflowId: string = await workflow.start(
+      ctx,
+      internal.scrapeWorkflow.websiteScrapeWorkflow,
+      {
+        url: args.url,
+        scrapeOptions: {
+          scraper: args.scraper ?? "fetchfox",
+          tagsHint: args.tagsHint,
+          maxCrawlVisit: 1,
+          maxDepth: 0,
+          maxExtractions: 1,
+          followExternalLinks: false,
+        },
+        workflowConfig: args.workflowConfig,
+      },
+      {
+        onComplete: internal.scrapeWorkflow.handleWorkflowComplete,
+        context: { autoImport: args.workflowConfig?.autoImport ?? false },
+      },
+    );
+
+    return workflowId;
+  },
+});
+
+/**
  * Handle workflow completion - cleanup files if autoImport is true
  */
 export const handleWorkflowComplete = internalMutation({

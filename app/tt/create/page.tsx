@@ -1,6 +1,6 @@
 "use client";
 
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useForm } from "react-hook-form";
 import { useState, useRef } from "react";
@@ -17,7 +17,7 @@ import {
   Box,
 } from "@radix-ui/themes";
 import { CheckCircle, AlertTriangle, Lock, MapPin } from "lucide-react";
-import { useAuth, SignInButton } from "@clerk/nextjs";
+import { useAuth, SignInButton, useUser } from "@clerk/nextjs";
 import { Loader } from "@googlemaps/js-api-loader";
 import { env } from "@/env";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
@@ -86,7 +86,47 @@ type ActivityFormData = {
 
 export default function CreateActivityPage() {
   const createActivity = useAction(api.activities.createActivity);
+  const startSingleScrape = useMutation(
+    api.scrapeWorkflow.startSingleScrape,
+  );
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
+  const canScrapeUrl =
+    user?.primaryEmailAddress?.emailAddress === "kev4tech@gmail.com";
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeStatus, setScrapeStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const onScrapeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const url = scrapeUrl.trim();
+    if (!url) return;
+
+    setIsScraping(true);
+    setScrapeStatus(null);
+    try {
+      await startSingleScrape({
+        url,
+        workflowConfig: { autoImport: true },
+      });
+      setScrapeStatus({
+        type: "success",
+        message: "Scrape started. The activity will appear once import finishes.",
+      });
+      setScrapeUrl("");
+    } catch (error) {
+      otel.captureException(error, { context: "create_single_scrape" });
+      setScrapeStatus({
+        type: "error",
+        message: "Failed to start scrape. Please try again.",
+      });
+    } finally {
+      setIsScraping(false);
+    }
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{
     type: "success" | "error";
@@ -253,6 +293,51 @@ export default function CreateActivityPage() {
             Create a new activity to share with others
           </Text>
         </Box>
+
+        {canScrapeUrl && (
+          <form onSubmit={onScrapeSubmit}>
+            <Flex direction="column" gap="2">
+              <Text size="2" weight="medium">
+                Create from URL
+              </Text>
+              <Flex gap="2" align="start">
+                <Box flexGrow="1">
+                  <TextField.Root
+                    value={scrapeUrl}
+                    onChange={(e) => setScrapeUrl(e.target.value)}
+                    type="url"
+                    placeholder="https://…"
+                    size="3"
+                  />
+                </Box>
+                <Button
+                  type="submit"
+                  loading={isScraping}
+                  disabled={isScraping || !scrapeUrl.trim()}
+                >
+                  Scrape
+                </Button>
+              </Flex>
+              <Text size="1" color="gray">
+                Runs a single-page scrape and auto-imports the activity.
+              </Text>
+              {scrapeStatus && (
+                <Callout.Root
+                  color={scrapeStatus.type === "success" ? "green" : "red"}
+                >
+                  <Callout.Icon>
+                    {scrapeStatus.type === "success" ? (
+                      <CheckCircle size={16} />
+                    ) : (
+                      <AlertTriangle size={16} />
+                    )}
+                  </Callout.Icon>
+                  <Callout.Text>{scrapeStatus.message}</Callout.Text>
+                </Callout.Root>
+              )}
+            </Flex>
+          </form>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Flex direction="column" gap="4">
