@@ -1,11 +1,15 @@
 "use node";
 
+import { Firecrawl } from "@mendable/firecrawl-js";
+import { z } from "zod";
 import { internalAction } from "./_generated/server";
 import { v, type Infer } from "convex/values";
 import { env } from "./env";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { scrapeOptions } from "./schema";
+import { otelServer } from "./otelServer";
+import type { ActionCtx } from "./_generated/server";
 
 const scrapeOptionsValidator = v.object(scrapeOptions);
 type ScrapeOptions = Infer<typeof scrapeOptionsValidator>;
@@ -5573,9 +5577,96 @@ interface FetchFoxResponse {
 }
 
 /**
+ * Build the shared Zod schema describing a RawActivity for LLM extraction.
+ * Field-level `.describe()` calls double as the prompt for both Firecrawl
+ * (via JSON Schema) and FetchFox (via the converted template).
+ */
+function buildActivitySchema(tagsHint?: string[]) {
+  const tagsHintLine = tagsHint
+    ? ` Prefer these tags when applicable: ${tagsHint.join(", ")}.`
+    : "";
+
+  const LocationSchema = z
+    .object({
+      name: z.string().describe("Location name").optional(),
+      formattedAddress: z.string().describe("Full address").optional(),
+      street_address: z
+        .string()
+        .describe("Street address component")
+        .optional(),
+      city: z.string().describe("City").optional(),
+      state_province: z.string().describe("State or province").optional(),
+      postal_code: z.string().describe("Postal or ZIP code").optional(),
+      country_code: z
+        .string()
+        .describe("ISO 3166-1 alpha-2 country code (e.g., US, CA, GB)")
+        .optional(),
+    })
+    .optional();
+
+  return z.object({
+    name: z.string().describe("The name or title of the activity"),
+    description: z
+      .string()
+      .describe("Detailed description of the activity")
+      .optional(),
+    location: LocationSchema,
+    startDate: z.string().describe("Start date in ISO 8601 format").optional(),
+    endDate: z.string().describe("End date in ISO 8601 format").optional(),
+    price: z
+      .string()
+      .describe(
+        "Price information for the activity (e.g., 'Free', '$10', 'Varies')",
+      )
+      .optional(),
+    tags: z
+      .array(z.string())
+      .describe(
+        `Theme-oriented categories or tags for the activity. Do not include address-derived tags.${tagsHintLine}`,
+      )
+      .optional(),
+    imageURL: z
+      .string()
+      .describe("URL of the primary image for this activity")
+      .optional(),
+  });
+}
+
+type JSONSchemaNode = {
+  type?: string | string[];
+  description?: string;
+  properties?: Record<string, JSONSchemaNode>;
+  items?: JSONSchemaNode;
+};
+
+/**
+ * Convert a JSON Schema (e.g. from `z.toJSONSchema(...)`) into a FetchFox
+ * template, where each leaf is the field's description string and arrays are
+ * wrapped in a single-element list.
+ */
+function jsonSchemaToFetchFoxTemplate(node: JSONSchemaNode): unknown {
+  if (node.properties) {
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(node.properties)) {
+      out[key] = jsonSchemaToFetchFoxTemplate(child);
+    }
+    return out;
+  }
+
+  const types = Array.isArray(node.type) ? node.type : [node.type];
+  if (types.includes("array") && node.items) {
+    const itemDesc = node.description ?? node.items.description ?? "";
+    return [itemDesc];
+  }
+
+  return node.description ?? "";
+}
+
+/**
  * Scrape a website using FetchFox's /scrape endpoint
  */
 async function scrapeFetchFox(
+  ctx: ActionCtx,
   url: string,
   options: ScrapeOptions,
 ): Promise<RawActivity[]> {
@@ -5587,26 +5678,10 @@ async function scrapeFetchFox(
 
     console.log(`[FetchFox] Starting scrape for pattern: ${pattern}`);
 
-    // Build template matching RawActivity structure
-    const template = {
-      name: "The name or title of the activity",
-      description: "Detailed description of the activity",
-      location: {
-        name: "Location name",
-        formattedAddress: "Full address",
-        street_address: "Street address component",
-        city: "City",
-        state_province: "State or province",
-        postal_code: "Postal or ZIP code",
-        country_code: "ISO 3166-1 alpha-2 country code (e.g., US, CA, GB)",
-      },
-      startDate: "Start date in ISO 8601 format",
-      endDate: "End date in ISO 8601 format",
-      tags: [
-        `Categories or tags for the activity, don't include anything related to the address. keep me more theme oriented. ${options.tagsHint ? `make sure you include these if suited: ${options.tagsHint.join(", ")}` : ""}`,
-      ],
-      imageURL: "URL of the primary image for this activity",
-    };
+    const activitySchema = buildActivitySchema(options.tagsHint);
+    const template = jsonSchemaToFetchFoxTemplate(
+      z.toJSONSchema(activitySchema) as JSONSchemaNode,
+    );
 
     const response = await fetch("https://api.fetchfox.ai/api/scrape", {
       method: "POST",
@@ -5671,10 +5746,132 @@ async function scrapeFetchFox(
     return activities;
   } catch (error) {
     console.error("[FetchFox] Scraping failed:", error);
+    await otelServer.captureException(ctx, error, {
+      context: "scrape_fetchfox",
+      url,
+    });
     if (error instanceof Error) {
       throw new Error(`FetchFox scraping failed: ${error.message}`);
     }
     throw new Error("FetchFox scraping failed with unknown error");
+  }
+}
+
+/**
+ * Scrape a website using Firecrawl's v2 crawl + JSON extraction.
+ * https://docs.firecrawl.dev/features/crawl#crawl-and-wait
+ */
+async function scrapeFirecrawl(
+  ctx: ActionCtx,
+  url: string,
+  options: ScrapeOptions,
+): Promise<RawActivity[]> {
+  try {
+    new URL(url);
+
+    console.log(`[Firecrawl] Starting crawl for: ${url}`);
+
+    const firecrawl = new Firecrawl({ apiKey: env.FIRECRAWL_API_KEY });
+
+    const ActivitySchema = buildActivitySchema(options.tagsHint);
+
+    const crawlJob = await firecrawl.crawl(url, {
+      limit: options.maxCrawlVisit,
+      maxDiscoveryDepth: options.maxDepth,
+      crawlEntireDomain: false,
+      sitemap: "include",
+      allowExternalLinks: options.followExternalLinks ?? false,
+      scrapeOptions: {
+        onlyMainContent: true,
+        maxAge: 86400000, // 1 day in milliseconds, if the crawl is younger it will return chached data instead of crawling again
+        parsers: [],
+        formats: [
+          // "markdown", // markdown is required because changeTracking compares page via markdown
+          // "changeTracking",
+          {
+            type: "json",
+            schema: z.toJSONSchema(ActivitySchema),
+            prompt: "Only scrape / extract what looks like an activity",
+          },
+        ],
+      },
+    });
+
+    if (crawlJob.status !== "completed") {
+      throw new Error(`Firecrawl crawl ended with status: ${crawlJob.status}`);
+    }
+
+    console.table({
+      status: crawlJob.status,
+      total: crawlJob.total,
+      completed: crawlJob.completed,
+      creditsUsed: crawlJob.creditsUsed,
+    });
+
+    const documents = crawlJob.data ?? [];
+
+    const extracted: RawActivity[] = [];
+    for (const doc of documents) {
+      const json = doc.json as Partial<RawActivity> | undefined;
+      if (!json || typeof json.name !== "string" || json.name.trim() === "") {
+        console.warn(
+          `[Firecrawl] Skipping document with invalid or missing name field`,
+          {
+            jsonSample: JSON.stringify(json).slice(0, 500),
+          },
+        );
+        continue;
+      }
+
+      extracted.push({
+        name: json.name,
+        description: json.description,
+        location: json.location,
+        startDate: json.startDate,
+        endDate: json.endDate,
+        tags: json.tags,
+        imageURL: json.imageURL,
+      });
+    }
+
+    // Deduplicate by name, merging missing fields across pages
+    const deduped = extracted.reduce<RawActivity[]>((acc, activity) => {
+      const idx = acc.findIndex((a) => a.name === activity.name);
+      if (idx === -1) {
+        acc.push(activity);
+      } else {
+        const existing = acc[idx];
+        acc[idx] = {
+          ...existing,
+          description: existing.description ?? activity.description,
+          location: existing.location ?? activity.location,
+          startDate: existing.startDate ?? activity.startDate,
+          endDate: existing.endDate ?? activity.endDate,
+          tags:
+            existing.tags && existing.tags.length > 0
+              ? existing.tags
+              : activity.tags,
+          imageURL: existing.imageURL ?? activity.imageURL,
+        };
+      }
+      return acc;
+    }, []);
+
+    console.log(
+      `[Firecrawl] Extracted ${deduped.length} unique activities from ${documents.length} pages`,
+    );
+
+    return deduped;
+  } catch (error) {
+    console.error("[Firecrawl] Scraping failed:", error);
+    await otelServer.captureException(ctx, error, {
+      context: "scrape_firecrawl",
+      url,
+    });
+    if (error instanceof Error) {
+      throw new Error(`Firecrawl scraping failed: ${error.message}`);
+    }
+    throw new Error("Firecrawl scraping failed with unknown error");
   }
 }
 
@@ -5687,7 +5884,7 @@ export const scrapeWebsite = internalAction({
     scrapeOptions: scrapeOptionsValidator,
     useMockScrape: v.optional(v.boolean()),
   },
-  handler: async (_ctx, args): Promise<RawActivity[]> => {
+  handler: async (ctx, args): Promise<RawActivity[]> => {
     // If mock scrape is enabled, return the mock activities constant
     if (args.useMockScrape) {
       console.log(
@@ -5699,7 +5896,11 @@ export const scrapeWebsite = internalAction({
     // Validate URL format
     try {
       new URL(args.url);
-    } catch {
+    } catch (error) {
+      await otelServer.captureException(ctx, error, {
+        context: "scrape_website_invalid_url",
+        url: args.url,
+      });
       throw new Error(`Invalid URL format: ${args.url}`);
     }
 
@@ -5710,25 +5911,18 @@ export const scrapeWebsite = internalAction({
       maxExtractions: args.scrapeOptions.maxExtractions ?? 150,
     };
 
-    console.log(`Starting scrape for URL: ${args.url}`);
+    const scraperName = options.scraper ?? "fetchfox";
+    console.log(
+      `Starting scrape for URL: ${args.url} (with scraper: ${scraperName})`,
+    );
     console.table({ url: args.url, ...options });
 
-    const results = await Promise.allSettled([
-      scrapeFetchFox(args.url, options),
-      // runFirecrawl(args.url, options),
-    ]);
-
-    // Extract results
-    const fetchfoxResult = results[0];
-
-    // Return FetchFox results (as requested)
-    if (fetchfoxResult.status === "fulfilled") {
-      return fetchfoxResult.value;
-    } else {
-      // If FetchFox failed, throw the error
-      throw new Error(
-        `FetchFox scraping failed: ${fetchfoxResult.reason instanceof Error ? fetchfoxResult.reason.message : "Unknown error"}`,
-      );
+    switch (scraperName) {
+      case "firecrawl":
+        return await scrapeFirecrawl(ctx, args.url, options);
+      case "fetchfox":
+      default:
+        return await scrapeFetchFox(ctx, args.url, options);
     }
   },
 });
