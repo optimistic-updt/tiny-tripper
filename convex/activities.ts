@@ -190,19 +190,34 @@ export const createActivity = action({
 });
 
 export const listActivities = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    sort: v.optional(
+      v.union(
+        v.literal("latest"),
+        v.literal("alpha-asc"),
+        v.literal("alpha-desc"),
+      ),
+    ),
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
+    const sort = args.sort ?? "latest";
 
-    return await ctx.db
-      .query("activities")
+    const baseQuery =
+      sort === "latest"
+        ? ctx.db.query("activities").order("desc")
+        : ctx.db
+            .query("activities")
+            .withIndex("by_name")
+            .order(sort === "alpha-asc" ? "asc" : "desc");
+
+    return await baseQuery
       .filter((q) =>
         q.or(
           q.eq(q.field("isPublic"), true),
           q.eq(q.field("userId"), identity?.subject),
         ),
       )
-      .order("desc")
       .collect();
   },
 });

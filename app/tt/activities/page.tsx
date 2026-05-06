@@ -4,11 +4,29 @@ import { useState, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
-import { Flex, Spinner, Text } from "@radix-ui/themes";
+import {
+  DropdownMenu,
+  Flex,
+  IconButton,
+  Spinner,
+  Text,
+} from "@radix-ui/themes";
+import { ArrowDownAZ, ArrowDownZA, Clock } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
 
+type SortOption = "alpha-asc" | "alpha-desc" | "latest";
+
+const SORT_ICON: Record<SortOption, typeof Clock> = {
+  "alpha-asc": ArrowDownAZ,
+  "alpha-desc": ArrowDownZA,
+  latest: Clock,
+};
+
 export default function ActivitiesPage() {
-  const allActivities = useQuery(api.activities.listActivities);
+  const [sortBy, setSortBy] = useState<SortOption>("latest");
+  const allActivities = useQuery(api.activities.listActivities, {
+    sort: sortBy,
+  });
   const [searchResults, setSearchResults] = useState<Doc<"activities">[]>([]);
   const [isSearchActive, setIsSearchActive] = useState(false);
 
@@ -21,6 +39,9 @@ export default function ActivitiesPage() {
     setSearchResults([]);
     setIsSearchActive(false);
   }, []);
+
+  const displayActivities = isSearchActive ? searchResults : allActivities;
+  const SortIcon = SORT_ICON[sortBy];
 
   // Show loading state while data is being fetched
   if (allActivities === undefined) {
@@ -40,8 +61,6 @@ export default function ActivitiesPage() {
     );
   }
 
-  const displayActivities = isSearchActive ? searchResults : allActivities;
-
   return (
     <Flex
       direction="column"
@@ -52,12 +71,47 @@ export default function ActivitiesPage() {
       overflowY="auto"
       overflowX="hidden"
       width="100%"
-      p="5"
+      px="5"
+      pt="3"
     >
-      <SearchBar
-        onSearchResults={handleSearchResults}
-        onSearchCleared={handleSearchCleared}
-      />
+      <Flex gap="2" width="100%" className="mb-4">
+        <div className="flex-1 min-w-0">
+          <SearchBar
+            onSearchResults={handleSearchResults}
+            onSearchCleared={handleSearchCleared}
+          />
+        </div>
+
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <IconButton size="3" variant="soft" color="gray" aria-label="Sort">
+              <SortIcon size={16} />
+            </IconButton>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <DropdownMenu.RadioGroup
+              value={sortBy}
+              onValueChange={(value) => setSortBy(value as SortOption)}
+            >
+              <DropdownMenu.RadioItem value="latest">
+                <Flex gap="2" align="center">
+                  <Clock size={14} /> Latest
+                </Flex>
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="alpha-asc">
+                <Flex gap="2" align="center">
+                  <ArrowDownAZ size={14} /> A → Z
+                </Flex>
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="alpha-desc">
+                <Flex gap="2" align="center">
+                  <ArrowDownZA size={14} /> Z → A
+                </Flex>
+              </DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+      </Flex>
 
       {/* Activities list */}
       {displayActivities && displayActivities.length > 0 ? (

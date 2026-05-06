@@ -239,7 +239,8 @@ export default function CreateActivityPage() {
       minHeight="0"
       flexGrow="1"
       overflowY="auto"
-      p="5"
+      px="5"
+      pt="3"
     >
       <Flex direction="column" gap="4">
         <Box>
