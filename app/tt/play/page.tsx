@@ -27,6 +27,7 @@ import { otel } from "@/lib/otel";
 
 // Radius options in meters
 const RADIUS_OPTIONS = [
+  { value: 1000, label: "1 km" },
   { value: 2000, label: "2 km" },
   { value: 3000, label: "3 km" },
   { value: 4000, label: "4 km" },
