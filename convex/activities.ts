@@ -25,11 +25,20 @@ const FOOD_TAGS = [
   "brunch",
 ];
 
+/** Tags that identify outdoor activities. Stored lowercase per tag convention. */
+const OUTDOOR_TAGS = [
+  "outdoor",
+  "outdoors",
+  "park",
+  "playground",
+  "nature",
+  "nature play",
+];
+
 /** Canonical narrow-filter tags. Stored lowercase per tag convention. */
 const NARROW_TAG = {
   atHome: "at home",
   rainproof: "rain approved",
-  outdoor: "outdoor",
 } as const;
 
 /**
@@ -438,6 +447,9 @@ export const getRecommendation = query({
         //
         // Narrow filters (only) default OFF. If any are active, the activity
         // must match at least one active narrow (union / OR semantics).
+        // `atHome` and `rainproof` match a single canonical tag; `outdoor`
+        // matches any tag in OUTDOOR_TAGS, mirroring how `exclude.food`
+        // matches FOOD_TAGS.
         //
         // Exclude filters default OFF (category included). When toggled on,
         // the activity is dropped if it matches that category.
@@ -449,7 +461,7 @@ export const getRecommendation = query({
             const matchesNarrow =
               (only.atHome && tags.includes(NARROW_TAG.atHome)) ||
               (only.rainproof && tags.includes(NARROW_TAG.rainproof)) ||
-              (only.outdoor && tags.includes(NARROW_TAG.outdoor));
+              (only.outdoor && tags.some((tag) => OUTDOOR_TAGS.includes(tag)));
             if (!matchesNarrow) {
               return false;
             }

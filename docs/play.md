@@ -15,7 +15,7 @@ There are two kinds of filter, with different semantics. Mixing them gives the u
 - A set of filters that are **off by default**. Each one corresponds to a category of activities.
 - Turning a narrow filter **on** restricts results to activities matching that category.
 - When multiple narrow filters are on, the semantics are **union (OR)**: an activity qualifies if it matches *any* active narrow.
-- Current narrow filters: `At Home`, `Rain Approved`, `Outdoor`.
+- Current narrow filters: `At Home`, `Rain Approved`, `Outdoor`. `At Home` and `Rain Approved` match a single canonical tag (`at home`, `rain approved`); `Outdoor` matches any tag in an outdoor synonym set (currently `outdoor`, `outdoors`, `park`, `playground`, `nature`, `nature play`).
 
 ### Exclude filters (subtraction)
 
@@ -36,5 +36,5 @@ There are two kinds of filter, with different semantics. Mixing them gives the u
 
 ## Tag convention
 
-- Tags are stored **lowercase, space-separated** (e.g. `at home`, `rain approved`, `outdoor`).
+- Tags are stored **lowercase, space-separated** (e.g. `at home`, `rain approved`, `park`). Tag-to-filter matching is mostly 1:1, but some filters (e.g. `Outdoor`, `Food`) match a synonym set — see filter definitions in `convex/activities.ts`.
 - Tag matching in filter logic is case-insensitive and trim-tolerant, so legacy mixed-case tags still resolve until they are migrated.
