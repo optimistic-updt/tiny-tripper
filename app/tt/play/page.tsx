@@ -57,6 +57,28 @@ const DEFAULT_FILTERS: Filters = {
   exclude: { food: false },
 };
 
+type ActivityLocation = NonNullable<Doc<"activities">["location"]>;
+
+function formatShortAddress(location: ActivityLocation): string {
+  if (location.street_address && location.city) {
+    return `${location.street_address}, ${location.city}`;
+  }
+  // Fall back to stripping trailing "<STATE> <postcode>, <country>" off the
+  // formatted address so postcode/country don't show.
+  const parts = location.formattedAddress.split(",").map((p) => p.trim());
+  if (parts.length >= 2) {
+    const tail = parts[parts.length - 2];
+    const withoutStateAndPostcode = tail.replace(
+      /\s+[A-Z]{2,3}\s+\d{3,}\s*$/,
+      "",
+    );
+    return [...parts.slice(0, -2), withoutStateAndPostcode]
+      .filter(Boolean)
+      .join(", ");
+  }
+  return location.formattedAddress;
+}
+
 function loadPrefs(): Partial<StoredPrefs> {
   if (typeof window === "undefined") return {};
   try {
@@ -388,11 +410,11 @@ export default function PlayPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentActivity.location && (
-                  <div>
-                    <Text size="2" weight="bold" color="gray">
+                  <div className="min-w-0">
+                    <Text size="2" weight="bold" color="gray" as="p">
                       Location
                     </Text>
-                    <Text size="3">
+                    <Text size="3" as="p" truncate>
                       📍{" "}
                       <a
                         href={
@@ -405,7 +427,7 @@ export default function PlayPage() {
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 underline"
                       >
-                        {currentActivity.location.formattedAddress}
+                        {formatShortAddress(currentActivity.location)}
                       </a>
                     </Text>
                   </div>
@@ -435,7 +457,7 @@ export default function PlayPage() {
               </div>
 
               {currentActivity.tags && currentActivity.tags.length > 0 && (
-                <div>
+                <div className="min-w-0">
                   <Text
                     size="2"
                     weight="bold"
@@ -444,9 +466,14 @@ export default function PlayPage() {
                   >
                     Tags
                   </Text>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-nowrap gap-2 overflow-x-auto -mx-1 px-1">
                     {currentActivity.tags.map((tag, index) => (
-                      <Badge key={index} size="1" color="blue">
+                      <Badge
+                        key={index}
+                        size="1"
+                        color="blue"
+                        className="shrink-0 whitespace-nowrap"
+                      >
                         {tag}
                       </Badge>
                     ))}
