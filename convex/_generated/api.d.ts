@@ -9,6 +9,8 @@
  */
 
 import type * as activities from "../activities.js";
+import type * as changeTracking from "../changeTracking.js";
+import type * as crons from "../crons.js";
 import type * as embeddings from "../embeddings.js";
 import type * as env from "../env.js";
 import type * as formatting from "../formatting.js";
@@ -20,6 +22,8 @@ import type * as otelServer from "../otelServer.js";
 import type * as quiz from "../quiz.js";
 import type * as scrapeWorkflow from "../scrapeWorkflow.js";
 import type * as scraping from "../scraping.js";
+import type * as scrapingSourceItems from "../scrapingSourceItems.js";
+import type * as scrapingSources from "../scrapingSources.js";
 import type * as storageHelpers from "../storageHelpers.js";
 import type * as tags from "../tags.js";
 import type * as userActivityPreferences from "../userActivityPreferences.js";
@@ -33,6 +37,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activities: typeof activities;
+  changeTracking: typeof changeTracking;
+  crons: typeof crons;
   embeddings: typeof embeddings;
   env: typeof env;
   formatting: typeof formatting;
@@ -44,6 +50,8 @@ declare const fullApi: ApiFromModules<{
   quiz: typeof quiz;
   scrapeWorkflow: typeof scrapeWorkflow;
   scraping: typeof scraping;
+  scrapingSourceItems: typeof scrapingSourceItems;
+  scrapingSources: typeof scrapingSources;
   storageHelpers: typeof storageHelpers;
   tags: typeof tags;
   userActivityPreferences: typeof userActivityPreferences;
