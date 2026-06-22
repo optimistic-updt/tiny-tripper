@@ -27,6 +27,25 @@ export const workflowConfig = {
   useMockScrape: v.optional(v.boolean()),
 };
 
+// How a scraping source discovers new URLs (Tier 1). See docs/change-tracking.md.
+export const scrapingSourceDetector = v.union(
+  v.object({
+    kind: v.literal("sitemap"),
+    sitemapUrl: v.string(),
+    pathIncludes: v.optional(v.string()), // e.g. "/melbourne/kids/"
+    pathExcludes: v.optional(v.array(v.string())), // e.g. ["/tag/", "/author/"]
+  }),
+  v.object({
+    kind: v.literal("rss"),
+    feedUrl: v.string(),
+  }),
+  v.object({
+    kind: v.literal("firecrawl-change"),
+    listingUrl: v.string(),
+    schemaJson: v.string(), // serialized JSON Schema for items
+  }),
+);
+
 export default defineSchema({
   activities: defineTable({
     name: v.string(),
@@ -156,14 +175,13 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_and_activityId", ["userId", "activityId"]),
 
+  // A configured source we periodically check for new content. The detector
+  // decides *how* to discover new URLs; the detailScrapeOptions get passed to
+  // `startSingleScrape` once a new URL is found. See docs/change-tracking.md.
   scrapingSources: defineTable({
-    url: v.string(),
+    url: v.string(), // listing URL — display only
     name: v.optional(v.string()),
-    type: v.union(
-      v.literal("website"),
-      v.literal("social_media"),
-      v.literal("other"),
-    ),
+    active: v.optional(v.boolean()),
     interval: v.union(
       v.literal("daily"),
       v.literal("weekly"),
@@ -172,17 +190,29 @@ export default defineSchema({
     ),
     on: v.optional(v.number()), // 0 monday, 1 tuesday, ..., 6 sunday OR 0 january, 1 february, ..., 11 december
     createdAt: v.number(),
-    active: v.optional(v.boolean()),
     lastCheckedAt: v.optional(v.number()),
     lastChangeAt: v.optional(v.number()),
-    lastChangePreviousScrapeAt: v.optional(v.string()),
-    scrapeConfig: v.optional(
-      v.object({
-        ...scrapeOptions,
-        urgencyDefault: v.optional(
-          v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-        ),
-      }),
-    ),
+    detector: scrapingSourceDetector,
+    detailScrapeOptions: v.optional(v.object(scrapeOptions)),
   }).index("by_active_lastCheckedAt", ["active", "lastCheckedAt"]),
+
+  // One row per URL discovered by a detector. Doubles as audit log and as the
+  // "seen set" the detector diffs against on the next tick.
+  scrapingSourceItems: defineTable({
+    sourceId: v.id("scrapingSources"),
+    url: v.string(),
+    lastmod: v.optional(v.string()), // sitemap <lastmod> or RSS pubDate, if any
+    contentHash: v.optional(v.string()), // for diff-based detectors
+    firstSeenAt: v.number(),
+    lastSeenAt: v.number(),
+    status: v.union(
+      v.literal("discovered"), // detected, not yet queued
+      v.literal("queued"), // Tier 2 workflow scheduled
+      v.literal("scraped"), // Tier 2 finished
+      v.literal("failed"),
+    ),
+    detailWorkflowId: v.optional(v.string()),
+  })
+    .index("by_source_and_url", ["sourceId", "url"])
+    .index("by_source_and_status", ["sourceId", "status"]),
 });

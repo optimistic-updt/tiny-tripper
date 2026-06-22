@@ -385,6 +385,14 @@ export const startSingleScrape = mutation({
     scraper: v.optional(scrapeOptions.scraper),
     tagsHint: v.optional(scrapeOptions.tagsHint),
     workflowConfig: v.optional(v.object(workflowConfig)),
+    // When this scrape was triggered by change tracking, the originating
+    // source item — so completion can flip its status. See changeTracking.ts.
+    source: v.optional(
+      v.object({
+        sourceId: v.id("scrapingSources"),
+        url: v.string(),
+      }),
+    ),
   },
   handler: async (ctx, args): Promise<string> => {
     const workflowId: string = await workflow.start(
@@ -404,7 +412,10 @@ export const startSingleScrape = mutation({
       },
       {
         onComplete: internal.scrapeWorkflow.handleWorkflowComplete,
-        context: { autoImport: args.workflowConfig?.autoImport ?? false },
+        context: {
+          autoImport: args.workflowConfig?.autoImport ?? false,
+          source: args.source,
+        },
       },
     );
 
@@ -427,7 +438,22 @@ export const handleWorkflowComplete = internalMutation({
     );
 
     // Extract our context
-    const context = args.context as { autoImport: boolean };
+    const context = args.context as {
+      autoImport: boolean;
+      source?: { sourceId: Id<"scrapingSources">; url: string };
+    };
+
+    // Change-tracking writeback: flip the originating source item's status so
+    // the audit log reflects the outcome of the detail scrape.
+    if (context.source) {
+      const status =
+        args.result.kind === "success" ? "scraped" : ("failed" as const);
+      await ctx.scheduler.runAfter(0, internal.scrapingSourceItems.setStatus, {
+        sourceId: context.source.sourceId,
+        url: context.source.url,
+        status,
+      });
+    }
 
     if (args.result.kind === "success") {
       // If autoImport is true and workflow succeeded, clean up storage files
