@@ -15,6 +15,7 @@ import type * as embeddings from "../embeddings.js";
 import type * as env from "../env.js";
 import type * as formatting from "../formatting.js";
 import type * as geocoding from "../geocoding.js";
+import type * as imageExtraction from "../imageExtraction.js";
 import type * as imageProcessing from "../imageProcessing.js";
 import type * as importing from "../importing.js";
 import type * as migrations from "../migrations.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   formatting: typeof formatting;
   geocoding: typeof geocoding;
+  imageExtraction: typeof imageExtraction;
   imageProcessing: typeof imageProcessing;
   importing: typeof importing;
   migrations: typeof migrations;

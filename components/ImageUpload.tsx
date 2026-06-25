@@ -1,33 +1,62 @@
 "use client";
 
 import { useState, useRef, useImperativeHandle, forwardRef } from "react";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Button, Flex, Text, Box, Callout } from "@radix-ui/themes";
+import { Button, Flex, Text, Box, Callout, Spinner } from "@radix-ui/themes";
 import { Camera, Upload, X, AlertCircle } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { compressImage } from "@/lib/compressImage";
 import { otel } from "@/lib/otel";
 
+/** Fields the LLM extracts from the image to pre-fill the create form. */
+export type ExtractedActivity = {
+  name: string | null;
+  description: string | null;
+  tags: string[] | null;
+  rainApproved: boolean | null;
+  inHome: boolean | null;
+};
+
 interface ImageUploadProps {
   value?: Id<"_storage">;
   onChange: (storageId: Id<"_storage"> | undefined) => void;
   onPendingImageChange?: (hasPendingImage: boolean) => void;
+  onExtracted?: (data: ExtractedActivity) => void;
 }
 
 export interface ImageUploadHandle {
   uploadPendingImage: () => Promise<void>;
 }
 
+/** Read a Blob (compressed webp or raw File fallback) as a base64 data URL. */
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Drop the "Analyzing…" state if extraction hasn't returned by this point.
+const EXTRACTION_TIMEOUT_MS = 25_000;
+// Defensive guard vs Convex's ~1MB single-string argument limit.
+const MAX_EXTRACTION_DATA_URL_LENGTH = 900_000;
+
 const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
-  ({ value, onChange, onPendingImageChange }, ref) => {
+  ({ value, onChange, onPendingImageChange, onExtracted }, ref) => {
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
     const generateUploadUrl = useMutation(api.activities.generateUploadUrl);
+    const extractActivity = useAction(
+      api.imageExtraction.extractActivityFromImage,
+    );
 
     const handleFileSelect = (file: File) => {
       if (!file.type.startsWith("image/")) {
@@ -47,26 +76,62 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
       onPendingImageChange?.(true);
     };
 
+    // Fire the LLM extraction in parallel with the storage upload. Owns its own
+    // state and must NEVER block or fail the upload/submit. Silent on error.
+    const runExtraction = async (body: Blob) => {
+      try {
+        const dataUrl = await blobToDataUrl(body);
+        if (dataUrl.length > MAX_EXTRACTION_DATA_URL_LENGTH) {
+          otel.log("warn", "Skipping image extraction: image too large", {
+            length: dataUrl.length,
+          });
+          return;
+        }
+
+        const timeout = new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), EXTRACTION_TIMEOUT_MS),
+        );
+        const extracted = await Promise.race([
+          extractActivity({ imageBase64: dataUrl }),
+          timeout,
+        ]);
+
+        if (extracted) {
+          onExtracted?.(extracted);
+        }
+      } catch (error) {
+        otel.captureException(error, { context: "image_extraction" });
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+
     const handleUpload = async () => {
       if (!selectedImage) return;
 
       setIsUploading(true);
+
+      // Compress once; the same Blob feeds both the upload and the extraction.
+      let body: Blob = selectedImage;
+      let contentType = selectedImage.type;
       try {
-        // Get upload URL
+        body = await compressImage(selectedImage);
+        contentType = "image/webp";
+      } catch (err) {
+        console.error("Image compression failed, uploading raw file:", err);
+        otel.captureException(err, { context: "image_compression" });
+      }
+
+      // Kick off extraction concurrently. Auth is enforced server-side, so this
+      // is a no-op for signed-out users (the action throws and we swallow it).
+      if (onExtracted) {
+        setIsAnalyzing(true);
+        void runExtraction(body);
+      }
+
+      // Upload owns isUploading and clears it as soon as the storageId returns.
+      try {
         const uploadUrl = await generateUploadUrl();
-
-        // Compress before uploading
-        let body: Blob = selectedImage;
-        let contentType = selectedImage.type;
-        try {
-          body = await compressImage(selectedImage);
-          contentType = "image/webp";
-        } catch (err) {
-          console.error("Image compression failed, uploading raw file:", err);
-          otel.captureException(err, { context: "image_compression" });
-        }
-
-        // Upload file
         const result = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": contentType },
@@ -174,6 +239,15 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
               <Text size="2" color="green" mt="2">
                 ✓ Image uploaded successfully
               </Text>
+            )}
+
+            {isAnalyzing && (
+              <Flex align="center" gap="2" mt="2">
+                <Spinner size="1" />
+                <Text size="2" color="gray">
+                  ✨ Analyzing image to pre-fill fields…
+                </Text>
+              </Flex>
             )}
           </Box>
         ) : (
