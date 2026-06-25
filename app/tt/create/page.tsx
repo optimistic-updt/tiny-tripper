@@ -3,7 +3,7 @@
 import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useForm } from "react-hook-form";
-import { useState, useRef } from "react";
+import { useState, useRef, type CSSProperties } from "react";
 import {
   Button,
   Flex,
@@ -22,7 +22,10 @@ import { Loader } from "@googlemaps/js-api-loader";
 import { env } from "@/env";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 import TagCombobox from "@/components/TagCombobox";
-import ImageUpload, { type ImageUploadHandle } from "@/components/ImageUpload";
+import ImageUpload, {
+  type ImageUploadHandle,
+  type ExtractedActivity,
+} from "@/components/ImageUpload";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/app/routes";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -144,6 +147,7 @@ export default function CreateActivityPage() {
     reset,
     watch,
     setValue,
+    getValues,
   } = useForm<ActivityFormData>({
     defaultValues: {
       isPublic: true,
@@ -158,6 +162,56 @@ export default function CreateActivityPage() {
   const inHome = watch("inHome");
   const tags = watch("tags") || [];
   const imageId = watch("imageId");
+
+  const hasSubmittedRef = useRef(false);
+  const [highlightFields, setHighlightFields] = useState<
+    Set<keyof ActivityFormData>
+  >(new Set());
+
+  const highlightStyle = (field: keyof ActivityFormData): CSSProperties =>
+    highlightFields.has(field)
+      ? {
+          transition: "background-color 0.4s ease",
+          backgroundColor: "var(--accent-a3)",
+          borderRadius: "var(--radius-2)",
+        }
+      : { transition: "background-color 0.4s ease" };
+
+  // Pre-fill empty/untouched form fields from the image-extraction result.
+  const handleExtracted = (extracted: ExtractedActivity) => {
+    // Drop results that arrive after the form was submitted / navigated away.
+    if (hasSubmittedRef.current) return;
+
+    const before = getValues();
+    const definedExtracted: Partial<ActivityFormData> = {};
+    if (extracted.name) definedExtracted.name = extracted.name;
+    if (extracted.description)
+      definedExtracted.description = extracted.description;
+    if (extracted.tags && extracted.tags.length > 0)
+      definedExtracted.tags = extracted.tags;
+    if (extracted.rainApproved !== null)
+      definedExtracted.rainApproved = extracted.rainApproved;
+    if (extracted.inHome !== null) definedExtracted.inHome = extracted.inHome;
+
+    // keepDirtyValues keeps every field the user has touched (dirty); spreading
+    // `before` preserves untouched non-extracted fields (imageId, isPublic, …).
+    reset({ ...before, ...definedExtracted }, { keepDirtyValues: true });
+
+    // Briefly highlight only the fields the merge actually changed.
+    const after = getValues();
+    const changed = new Set<keyof ActivityFormData>();
+    (
+      ["name", "description", "tags", "rainApproved", "inHome"] as const
+    ).forEach((field) => {
+      if (JSON.stringify(before[field]) !== JSON.stringify(after[field])) {
+        changed.add(field);
+      }
+    });
+    if (changed.size > 0) {
+      setHighlightFields(changed);
+      setTimeout(() => setHighlightFields(new Set()), 2000);
+    }
+  };
 
   const handleUseCurrentLocation = () => {
     setLocationError(null);
@@ -210,6 +264,7 @@ export default function CreateActivityPage() {
               },
               result.formatted_address,
             ),
+            { shouldDirty: true },
           );
         } catch (error) {
           otel.captureException(error, { context: "create_location_lookup" });
@@ -227,6 +282,7 @@ export default function CreateActivityPage() {
   };
 
   const onSubmit = async (data: ActivityFormData) => {
+    hasSubmittedRef.current = true;
     setIsSubmitting(true);
     setSubmitStatus(null);
 
@@ -348,14 +404,17 @@ export default function CreateActivityPage() {
               <ImageUpload
                 ref={imageUploadRef}
                 value={imageId}
-                onChange={(storageId) => setValue("imageId", storageId)}
+                onChange={(storageId) =>
+                  setValue("imageId", storageId, { shouldDirty: true })
+                }
+                onExtracted={handleExtracted}
               />
               <Text size="1" color="gray" mt="1">
                 Add an image to your activity (optional)
               </Text>
             </div>
 
-            <div>
+            <div style={highlightStyle("name")}>
               <Text size="2" weight="medium" mb="2">
                 Name *
               </Text>
@@ -377,7 +436,9 @@ export default function CreateActivityPage() {
                 {!isSignedIn && <Lock size={14} className="text-gray-400" />}
                 <Switch
                   checked={isPublic}
-                  onCheckedChange={(checked) => setValue("isPublic", checked)}
+                  onCheckedChange={(checked) =>
+                    setValue("isPublic", checked, { shouldDirty: true })
+                  }
                   disabled={!isSignedIn}
                 />
                 <Text
@@ -403,7 +464,7 @@ export default function CreateActivityPage() {
               </Text>
             </div>
 
-            <div>
+            <div style={highlightStyle("description")}>
               <Text size="2" weight="medium" mb="2">
                 Description
               </Text>
@@ -430,7 +491,7 @@ export default function CreateActivityPage() {
                 size="3"
                 disabled={!isSignedIn}
                 onValueChange={(value: "low" | "medium" | "high") =>
-                  setValue("urgency", value)
+                  setValue("urgency", value, { shouldDirty: true })
                 }
               >
                 <SegmentedControl.Item value="low">Low</SegmentedControl.Item>
@@ -460,9 +521,11 @@ export default function CreateActivityPage() {
                 value={watch("location")?.name || ""}
                 onChange={(value, place) => {
                   if (place) {
-                    setValue("location", placeToLocation(place, value));
+                    setValue("location", placeToLocation(place, value), {
+                      shouldDirty: true,
+                    });
                   } else {
-                    setValue("location.name", value);
+                    setValue("location.name", value, { shouldDirty: true });
                   }
                 }}
                 placeholder="Enter location"
@@ -485,13 +548,15 @@ export default function CreateActivityPage() {
               </Flex>
             </div>
 
-            <div>
+            <div style={highlightStyle("tags")}>
               <Text size="2" weight="medium" mb="2">
                 Tags
               </Text>
               <TagCombobox
                 value={tags}
-                onChange={(tags) => setValue("tags", tags)}
+                onChange={(tags) =>
+                  setValue("tags", tags, { shouldDirty: true })
+                }
                 placeholder="Add tags (comma-separated)..."
               />
               <Text size="1" color="gray" mt="1">
@@ -525,12 +590,12 @@ export default function CreateActivityPage() {
               </Text>
             </div>
 
-            <div>
+            <div style={highlightStyle("rainApproved")}>
               <Flex align="center" gap="3">
                 <Switch
                   checked={rainApproved}
                   onCheckedChange={(checked) =>
-                    setValue("rainApproved", checked)
+                    setValue("rainApproved", checked, { shouldDirty: true })
                   }
                 />
                 <Text size="2" weight="medium">
@@ -544,11 +609,13 @@ export default function CreateActivityPage() {
               </Text>
             </div>
 
-            <div>
+            <div style={highlightStyle("inHome")}>
               <Flex align="center" gap="3">
                 <Switch
                   checked={inHome}
-                  onCheckedChange={(checked) => setValue("inHome", checked)}
+                  onCheckedChange={(checked) =>
+                    setValue("inHome", checked, { shouldDirty: true })
+                  }
                 />
                 <Text size="2" weight="medium">
                   In Home
@@ -562,7 +629,14 @@ export default function CreateActivityPage() {
             </div>
 
             <Flex gap="3" justify="end" mt="4">
-              <Button type="button" variant="soft" onClick={() => reset()}>
+              <Button
+                type="button"
+                variant="soft"
+                onClick={() => {
+                  hasSubmittedRef.current = false;
+                  reset();
+                }}
+              >
                 Reset
               </Button>
               <Button
