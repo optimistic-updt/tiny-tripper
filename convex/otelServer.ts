@@ -33,6 +33,28 @@ export const sendCapture = internalAction({
   handler: async (_ctx, args) => {
     const key = process.env.POSTHOG_KEY;
     if (!key) return;
+
+    // Reconstruct PostHog's reserved `$exception_list` shape here. The wrapper
+    // passes a plain `exception` object because `$`-prefixed keys are illegal in
+    // Convex scheduler args.
+    let properties = args.properties as Record<string, unknown> | undefined;
+    if (args.event === "$exception" && properties?.exception) {
+      const { exception, ...rest } = properties as {
+        exception: { type?: string; value?: string; stacktrace?: string };
+      } & Record<string, unknown>;
+      properties = {
+        ...rest,
+        $exception_list: [
+          {
+            type: exception.type,
+            value: exception.value,
+            stacktrace: exception.stacktrace,
+            mechanism: { handled: true, synthetic: false },
+          },
+        ],
+      };
+    }
+
     try {
       await fetch(`${POSTHOG_HOST}/capture/`, {
         method: "POST",
@@ -41,7 +63,7 @@ export const sendCapture = internalAction({
           api_key: key,
           event: args.event,
           distinct_id: args.distinctId,
-          properties: args.properties,
+          properties,
         }),
       });
     } catch (err) {
@@ -71,15 +93,15 @@ export const otelServer = {
   ): Promise<void> {
     const distinctId = await getDistinctId(ctx);
     const err = error instanceof Error ? error : new Error(String(error));
+    // Convex scheduler args cannot contain `$`-prefixed field names, so we pass a
+    // plain `exception` object here and reshape it into PostHog's reserved
+    // `$exception_list` property inside `sendCapture` (plain JSON, where `$` is ok).
     await schedule(ctx, "$exception", distinctId, {
-      $exception_list: [
-        {
-          type: err.name,
-          value: err.message,
-          stacktrace: err.stack,
-          mechanism: { handled: true, synthetic: false },
-        },
-      ],
+      exception: {
+        type: err.name,
+        value: err.message,
+        stacktrace: err.stack,
+      },
       ...properties,
     });
   },
