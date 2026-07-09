@@ -24,6 +24,7 @@ import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import styles from "./3d_button.module.css";
 import { otel } from "@/lib/otel";
+import { formatDate, getUrgencyColor, getDaysUntilEnd } from "@/lib/activity-format";
 
 // Radius options in meters
 const RADIUS_OPTIONS = [
@@ -224,38 +225,6 @@ export default function PlayPage() {
     api.userActivityPreferences.getActivityUserPreference,
     currentActivity ? { activityId: currentActivity._id } : "skip",
   );
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case "high":
-        return "red";
-      case "medium":
-        return "yellow";
-      case "low":
-        return "green";
-      default:
-        return "gray";
-    }
-  };
-
-  const getDaysUntilEnd = (endDate?: string) => {
-    if (!endDate) return null;
-    const end = new Date(endDate);
-    const now = new Date();
-    const diffTime = end.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
 
   return (
     <Flex
