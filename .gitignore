@@ -13,9 +13,11 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
+# tanstack start / vite / nitro
+/.output/
+/.nitro/
+/.tanstack/
+/dist/
 
 # production
 /build
@@ -38,12 +40,14 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # Ignored for the template, you probably want to remove it:
 package-lock.json
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# claude code worktrees
+/.claude/worktrees/
 
 .env.local

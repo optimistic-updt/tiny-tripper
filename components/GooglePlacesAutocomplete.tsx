@@ -1,12 +1,10 @@
-"use client";
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { TextField } from "@radix-ui/themes";
 import { env } from "@/env";
 import { otel } from "@/lib/otel";
 
-const apiKey = env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const apiKey = env.VITE_GOOGLE_MAPS_API_KEY;
 
 type DefinedPlace = Required<
   Pick<

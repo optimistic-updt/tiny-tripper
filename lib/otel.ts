@@ -1,5 +1,3 @@
-"use client";
-
 import posthog from "posthog-js";
 
 type Properties = Record<string, unknown>;

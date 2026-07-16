@@ -1,5 +1,4 @@
-"use client";
-
+import { createFileRoute } from "@tanstack/react-router";
 import { Drawer } from "vaul";
 import { useState, useEffect } from "react";
 import {
@@ -22,9 +21,13 @@ import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { EyeOff, MapPin, SlidersHorizontal } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
-import styles from "./3d_button.module.css";
+import styles from "../../styles/3d_button.module.css";
 import { otel } from "@/lib/otel";
 import { formatDate, getUrgencyColor, getDaysUntilEnd } from "@/lib/activity-format";
+
+export const Route = createFileRoute("/tt/play")({
+  component: PlayPage,
+});
 
 // Radius options in meters
 const RADIUS_OPTIONS = [
@@ -69,7 +72,7 @@ function loadPrefs(): Partial<StoredPrefs> {
   }
 }
 
-export default function PlayPage() {
+function PlayPage() {
   const { isAuthenticated } = useConvexAuth();
   const [recommendationHistory, setRecommendationHistory] = useState<
     Recommendation[]
@@ -236,15 +239,6 @@ export default function PlayPage() {
       overflowY="auto"
       p="5"
     >
-      {/* <div className="text-center mb-8">
-        <Heading as="h1" size="8" weight="bold">
-          Create Activity
-        </Heading>
-        <Text size="3" color="gray">
-          Create a new activity to share with others
-        </Text>
-      </div> */}
-
       <div className="space-y-6 mb-4">
         {/* Activity Display */}
         {currentActivity ? (
@@ -434,14 +428,6 @@ export default function PlayPage() {
           </Card>
         ) : (
           <Card size="4" className="p-8 text-center">
-            {/* {recommendation === undefined ?
-              <div className="space-y-4">
-                <Spinner size="3" />
-                <Text size="4" color="gray">
-                  Loading recommendations...
-                </Text>
-              </div> : null} */}
-
             {recommendation === null ? (
               <div className="space-y-4">
                 <Text size="6">🔍</Text>

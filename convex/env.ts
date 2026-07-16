@@ -17,6 +17,6 @@ export const env = createEnv({
     GOOGLE_MAPS_API_KEY: z.string().min(1),
   },
   client: {},
-  clientPrefix: "NEXT_PUBLIC_",
+  clientPrefix: "VITE_",
   runtimeEnv: process.env,
 });

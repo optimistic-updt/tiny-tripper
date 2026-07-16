@@ -1,9 +1,14 @@
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { Container, Flex, Heading, Button } from "@radix-ui/themes";
-import { Navbar } from "./Navbar";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/tanstack-react-start";
+import { Navbar } from "@/components/Navbar";
 import { ActivityListPrefetch } from "@/components/ActivityListPrefetch";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export const Route = createFileRoute("/tt")({
+  component: AppLayout,
+});
+
+function AppLayout() {
   return (
     <div className="background-app-light dark:background-app-dark">
       <ActivityListPrefetch />
@@ -13,16 +18,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             Tiny Tripper
           </Heading>
 
-          <SignedIn>
+          <Show when="signed-in">
             <UserButton />
-          </SignedIn>
-          <SignedOut>
+          </Show>
+          <Show when="signed-out">
             <SignInButton mode="modal">
               <Button variant="soft" size="2">
                 Sign In
               </Button>
             </SignInButton>
-          </SignedOut>
+          </Show>
         </Flex>
       </Container>
 
@@ -32,7 +37,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         // 72px is height of navbar
         style={{ height: "calc(100dvh - 118px)" }}
       >
-        {children}
+        <Outlet />
       </Flex>
 
       <Navbar />

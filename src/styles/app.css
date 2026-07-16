@@ -1,6 +1,6 @@
 @import "tailwindcss" source(none);
-@source "../app/**/*.{js,ts,jsx,tsx,mdx}";
-@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../routes/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../../components/**/*.{js,ts,jsx,tsx,mdx}";
 @import "@radix-ui/colors/tomato.css";
 
 :root {

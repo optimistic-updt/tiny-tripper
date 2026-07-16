@@ -1,10 +1,7 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { useEffect } from "react";
-import Link from "next/link";
 import {
   Button,
   Card,
@@ -16,9 +13,16 @@ import {
 } from "@radix-ui/themes";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { ROUTES } from "@/app/routes";
+import { ROUTES } from "@/lib/routes";
 import { Thermometer } from "@/components/quiz/Thermometer";
 import { Brain, Clock, Zap, ArrowRight } from "lucide-react";
+
+export const Route = createFileRoute("/quiz/results")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    id: typeof search.id === "string" ? search.id : undefined,
+  }),
+  component: QuizResultsPage,
+});
 
 // Insights based on score buckets
 const INSIGHTS = {
@@ -90,9 +94,9 @@ const INSIGHTS = {
   },
 };
 
-export default function QuizResultsPage() {
-  const searchParams = useSearchParams();
-  const responseId = searchParams.get("id") as Id<"quizResponses"> | null;
+function QuizResultsPage() {
+  const { id } = Route.useSearch();
+  const responseId = (id ?? null) as Id<"quizResponses"> | null;
   const posthog = usePostHog();
 
   const response = useQuery(
@@ -115,7 +119,7 @@ export default function QuizResultsPage() {
         <Flex direction="column" align="center" gap="4">
           <Heading>Results not found</Heading>
           <Text color="gray">Please complete the quiz to see your results.</Text>
-          <Link href="/quiz">
+          <Link to={ROUTES.quiz}>
             <Button size="3">Take the Quiz</Button>
           </Link>
         </Flex>
@@ -138,7 +142,7 @@ export default function QuizResultsPage() {
       <Container size="2" className="py-16">
         <Flex direction="column" align="center" gap="4">
           <Heading>Results not found</Heading>
-          <Link href="/quiz">
+          <Link to={ROUTES.quiz}>
             <Button size="3">Take the Quiz</Button>
           </Link>
         </Flex>
@@ -214,7 +218,7 @@ export default function QuizResultsPage() {
             Get your first personalized activity recommendation now.
           </Text>
 
-          <Link href={ROUTES.play}>
+          <Link to={ROUTES.play}>
             <Button size="4" variant="solid">
               Get My First Recommendation
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -225,16 +229,18 @@ export default function QuizResultsPage() {
         {/* Footer */}
         <Box className="w-full border-t pt-6 mt-6">
           <Flex justify="center" gap="4">
-            <Link href={ROUTES.home}>
+            <Link to={ROUTES.home}>
               <Text size="2" color="gray">
                 Back to Home
               </Text>
             </Link>
-            <Link href={ROUTES.privacyPolicy}>
+            {/* No privacy page exists yet, so this stays a plain anchor
+                rather than a (type-checked) router Link. */}
+            <a href={ROUTES.privacyPolicy}>
               <Text size="2" color="gray">
                 Privacy Policy
               </Text>
-            </Link>
+            </a>
           </Flex>
         </Box>
       </Flex>

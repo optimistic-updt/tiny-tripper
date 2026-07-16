@@ -1,5 +1,4 @@
-"use client";
-
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useForm } from "react-hook-form";
@@ -17,7 +16,7 @@ import {
   Box,
 } from "@radix-ui/themes";
 import { CheckCircle, AlertTriangle, Lock, MapPin } from "lucide-react";
-import { useAuth, SignInButton, useUser } from "@clerk/nextjs";
+import { useAuth, SignInButton, useUser } from "@clerk/tanstack-react-start";
 import { Loader } from "@googlemaps/js-api-loader";
 import { env } from "@/env";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
@@ -26,10 +25,13 @@ import ImageUpload, {
   type ImageUploadHandle,
   type ExtractedActivity,
 } from "@/components/ImageUpload";
-import { useRouter } from "next/navigation";
-import { ROUTES } from "@/app/routes";
+import { ROUTES } from "@/lib/routes";
 import type { Id } from "@/convex/_generated/dataModel";
 import { otel } from "@/lib/otel";
+
+export const Route = createFileRoute("/tt/create")({
+  component: CreateActivityPage,
+});
 
 type PlaceLike = {
   name?: string;
@@ -87,7 +89,7 @@ type ActivityFormData = {
   sourceUrl?: string;
 };
 
-export default function CreateActivityPage() {
+function CreateActivityPage() {
   const createActivity = useAction(api.activities.createActivity);
   const startSingleScrape = useMutation(
     api.scrapeWorkflow.startSingleScrape,
@@ -137,7 +139,7 @@ export default function CreateActivityPage() {
   } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const router = useRouter();
+  const navigate = useNavigate();
   const imageUploadRef = useRef<ImageUploadHandle>(null);
 
   const {
@@ -227,7 +229,7 @@ export default function CreateActivityPage() {
       async (pos) => {
         try {
           const loader = new Loader({
-            apiKey: env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+            apiKey: env.VITE_GOOGLE_MAPS_API_KEY,
             version: "weekly",
             libraries: ["places"],
           });
@@ -317,7 +319,7 @@ export default function CreateActivityPage() {
         message: "Activity created successfully!",
       });
       reset();
-      router.push(ROUTES.activities);
+      navigate({ to: ROUTES.activities });
     } catch (error) {
       otel.captureException(error, { context: "create_activity_submit" });
       setSubmitStatus({
