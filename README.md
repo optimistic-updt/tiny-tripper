@@ -42,7 +42,7 @@ full-stack app using:
 
 - [Convex](https://convex.dev/) as your backend (database, server logic)
 - [React](https://react.dev/) as your frontend (web page interactivity)
-- [Next.js](https://nextjs.org/) for optimized web hosting and page routing
+- [TanStack Start](https://tanstack.com/start) for web hosting and page routing (Vite + TanStack Router)
 - [Tailwind](https://tailwindcss.com/) for building great looking accessible UI
 - [Clerk](https://clerk.com/) for authentication
 

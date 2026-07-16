@@ -1,5 +1,4 @@
-"use client";
-
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { Drawer } from "vaul";
 import { useQuery } from "convex/react";
@@ -24,6 +23,10 @@ import {
   getDaysUntilEnd,
 } from "@/lib/activity-format";
 
+export const Route = createFileRoute("/tt/activities")({
+  component: ActivitiesPage,
+});
+
 type SortOption = "alpha-asc" | "alpha-desc" | "latest";
 
 const SORT_ICON: Record<SortOption, typeof Clock> = {
@@ -32,7 +35,7 @@ const SORT_ICON: Record<SortOption, typeof Clock> = {
   latest: Clock,
 };
 
-export default function ActivitiesPage() {
+function ActivitiesPage() {
   const [sortBy, setSortBy] = useState<SortOption>("latest");
   const allActivities = useQuery(api.activities.listActivities, {
     sort: sortBy,

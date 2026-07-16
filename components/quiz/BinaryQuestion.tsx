@@ -1,5 +1,3 @@
-"use client";
-
 import { Button, Flex, Heading, Text } from "@radix-ui/themes";
 
 interface BinaryQuestionProps {

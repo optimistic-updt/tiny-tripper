@@ -1,6 +1,5 @@
-"use client";
-
 import { useEffect, useState } from "react";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
   Button,
   Heading,
@@ -11,12 +10,22 @@ import {
   Box,
   Badge,
 } from "@radix-ui/themes";
-import Link from "next/link";
 import { usePostHog } from "posthog-js/react";
-import { ROUTES } from "./routes";
+import { ROUTES } from "@/lib/routes";
 import { Brain, Clock, Zap } from "lucide-react";
 
-export default function Home() {
+export const Route = createFileRoute("/")({
+  // Redirect signed-in users away from the marketing home page
+  // (was middleware.ts in the Next.js app).
+  beforeLoad: ({ context }) => {
+    if (context.userId) {
+      throw redirect({ to: ROUTES.play });
+    }
+  },
+  component: Home,
+});
+
+function Home() {
   const posthog = usePostHog();
   const [headlineVariant, setHeadlineVariant] = useState<
     "frustration" | "results"
@@ -72,12 +81,12 @@ export default function Home() {
 
             {/* Dual CTA */}
             <Flex gap="4" mt="4" wrap="wrap" justify="center">
-              <Link href="/quiz">
+              <Link to={ROUTES.quiz}>
                 <Button size="4" variant="solid">
                   Start the Quiz
                 </Button>
               </Link>
-              <Link href={ROUTES.play}>
+              <Link to={ROUTES.play}>
                 <Button size="4" variant="outline">
                   Try it Now
                 </Button>
@@ -212,7 +221,7 @@ export default function Home() {
               Ready to reclaim your weekends?
             </Heading>
 
-            <Link href="/quiz">
+            <Link to={ROUTES.quiz}>
               <Button size="4" variant="solid">
                 Start the Quiz
               </Button>
@@ -229,11 +238,13 @@ export default function Home() {
               © 2026 Tiny Tripper
             </Text>
             <Flex gap="4">
-              <Link href={ROUTES.privacyPolicy}>
+              {/* No privacy page exists yet, so this stays a plain anchor
+                  rather than a (type-checked) router Link. */}
+              <a href={ROUTES.privacyPolicy}>
                 <Text size="2" color="gray">
                   Privacy Policy
                 </Text>
-              </Link>
+              </a>
             </Flex>
           </Flex>
         </Container>

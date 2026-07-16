@@ -1,25 +1,18 @@
-import { createEnv } from "@t3-oss/env-nextjs";
+import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
 export const env = createEnv({
   server: {},
+  clientPrefix: "VITE_",
   client: {
-    NEXT_PUBLIC_CONVEX_URL: z.string().startsWith("https://"),
-    NEXT_PUBLIC_POSTHOG_KEY: z.string().startsWith("phc_"),
-    NEXT_PUBLIC_POSTHOG_HOST: z
+    VITE_CONVEX_URL: z.string().startsWith("https://"),
+    VITE_POSTHOG_KEY: z.string().startsWith("phc_"),
+    VITE_POSTHOG_HOST: z
       .string()
       .refine((val) => val === "https://eu.i.posthog.com"),
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string(),
+    VITE_CLERK_PUBLISHABLE_KEY: z.string(),
+    VITE_GOOGLE_MAPS_API_KEY: z.string(),
   },
-  // For Next.js >= 13.4.4, you only need to destructure client variables:
-  experimental__runtimeEnv: {
-    NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
-    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
-    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
-      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-  },
+  runtimeEnv: import.meta.env,
+  emptyStringAsUndefined: true,
 });

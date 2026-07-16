@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { Button, Flex, Heading, Text, TextField, Box } from "@radix-ui/themes";
 import { useForm } from "react-hook-form";

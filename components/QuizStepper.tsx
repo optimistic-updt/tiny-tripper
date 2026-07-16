@@ -1,5 +1,3 @@
-"use client";
-
 import { Flex, Text, Box } from "@radix-ui/themes";
 
 interface QuizStepperProps {

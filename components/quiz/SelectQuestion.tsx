@@ -1,5 +1,3 @@
-"use client";
-
 import { Button, Flex, Heading, Text, RadioCards } from "@radix-ui/themes";
 import { useState } from "react";
 

@@ -1,11 +1,11 @@
-import React, {
-  ForwardRefExoticComponent,
-  RefAttributes,
+import {
+  type ForwardRefExoticComponent,
+  type RefAttributes,
   type FC,
 } from "react";
 import { List, LucideProps, Play, PlusIcon } from "lucide-react";
-import Link from "next/link";
-import { ROUTES } from "../routes";
+import { Link } from "@tanstack/react-router";
+import { ROUTES } from "@/lib/routes";
 import { IconButton } from "@radix-ui/themes";
 
 type NavItemProps = {
@@ -15,7 +15,10 @@ type NavItemProps = {
       Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
     >;
     name: string;
-    href: string;
+    href:
+      | typeof ROUTES.play
+      | typeof ROUTES.newActivity
+      | typeof ROUTES.activities;
     isPrimary?: boolean;
   };
 };
@@ -27,7 +30,7 @@ const NavItem: FC<NavItemProps> = ({
   const Icon = icon;
 
   return (
-    <Link href={href}>
+    <Link to={href}>
       <IconButton
         variant={isPrimary ? "solid" : "ghost"}
         radius="full"
@@ -49,7 +52,7 @@ const NAV_ITEMS = [
   { name: "Home", href: ROUTES.play, icon: Play },
   { name: "Plus", href: ROUTES.newActivity, icon: PlusIcon, isPrimary: true },
   { name: "Blocks", href: ROUTES.activities, icon: List },
-];
+] as const;
 
 export const Navbar = () => {
   return (

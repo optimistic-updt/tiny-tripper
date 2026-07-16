@@ -1,12 +1,10 @@
-"use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { Flex, Heading, Text, Button } from "@radix-ui/themes";
 import { api } from "@/convex/_generated/api";
-import { ROUTES } from "../routes";
+import { ROUTES } from "@/lib/routes";
 import { QuizStepper } from "@/components/QuizStepper";
 import { ContactCapture } from "@/components/quiz/ContactCapture";
 import { BinaryQuestion } from "@/components/quiz/BinaryQuestion";
@@ -14,6 +12,10 @@ import { TextQuestion } from "@/components/quiz/TextQuestion";
 import { SelectQuestion } from "@/components/quiz/SelectQuestion";
 import { ArrowLeft } from "lucide-react";
 import { otel } from "@/lib/otel";
+
+export const Route = createFileRoute("/quiz/")({
+  component: QuizPage,
+});
 
 // Quiz configuration
 const SCORING_QUESTIONS = [
@@ -141,8 +143,8 @@ interface ContactData {
   detectedCountry?: string;
 }
 
-export default function QuizPage() {
-  const router = useRouter();
+function QuizPage() {
+  const navigate = useNavigate();
   const posthog = usePostHog();
   const submitQuiz = useMutation(api.quiz.submitQuizResponse);
 
@@ -249,7 +251,10 @@ export default function QuizPage() {
       });
 
       // Redirect to results page
-      router.push(ROUTES.build.quizResults(result.responseId));
+      navigate({
+        to: ROUTES.quizResults,
+        search: { id: result.responseId },
+      });
     } catch (error) {
       console.error("Failed to submit quiz:", error);
       otel.captureException(error, { context: "quiz_submit" });
@@ -261,7 +266,7 @@ export default function QuizPage() {
 
   const handleBack = () => {
     if (currentStep === "contact") {
-      router.push(ROUTES.home);
+      navigate({ to: ROUTES.home });
     } else if (typeof currentStep === "number" && currentStep === 1) {
       setCurrentStep("contact");
     } else if (typeof currentStep === "number") {

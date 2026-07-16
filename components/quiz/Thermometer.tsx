@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { Box, Flex, Text } from "@radix-ui/themes";
 
